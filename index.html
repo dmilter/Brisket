@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Brisket">
+<meta name="theme-color" content="#B3401F">
+<title>Brisket Cook Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* layout: one phone-width column, sticky save bar, stacked cards ordered by what you need at the grill */
+  --bg:#F1F3F4; --surface:#FFFFFF; --ink:#15202B; --muted:#586774; --line:#D9DFE3;
+  --accent:#B3401F; --accent-ink:#FFFFFF;
+  --good:#1B7A4B; --good-bg:#E3F3EA; --warn:#9A5A08; --warn-bg:#FAEED6; --bad:#B3261E; --bad-bg:#FBE4E1;
+  --band1:#C5CED4; --band2:#E6CB86; --band3:#4FA876; --band4:#E6CB86; --band5:#D9695F;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11171C; --surface:#1A2229; --ink:#E7ECF0; --muted:#9AA8B3; --line:#2F3B45;
+    --accent:#F08A5D; --accent-ink:#1A1109;
+    --good:#5CC48E; --good-bg:#16301F; --warn:#E7B365; --warn-bg:#35280F; --bad:#F2877F; --bad-bg:#3B1B18;
+    --band1:#34414B; --band2:#8C7536; --band3:#3F9468; --band4:#8C7536; --band5:#B0524A;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11171C; --surface:#1A2229; --ink:#E7ECF0; --muted:#9AA8B3; --line:#2F3B45;
+  --accent:#F08A5D; --accent-ink:#1A1109;
+  --good:#5CC48E; --good-bg:#16301F; --warn:#E7B365; --warn-bg:#35280F; --bad:#F2877F; --bad-bg:#3B1B18;
+  --band1:#34414B; --band2:#8C7536; --band3:#3F9468; --band4:#8C7536; --band5:#B0524A;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.45 var(--body);-webkit-text-size-adjust:100%;padding-bottom:env(safe-area-inset-bottom)}
+h2{font:600 13px/1.2 var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+h3{font:600 15px/1.3 var(--body);margin:0 0 6px}
+p{margin:0 0 8px}
+.num{font-family:var(--display);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.tab{font-variant-numeric:tabular-nums}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:max(10px,env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand .title{font:700 24px/1 var(--display);letter-spacing:.02em;display:block}
+.brand .sub{font-size:13px;color:var(--muted)}
+.pill{font:600 13px/1 var(--body);padding:8px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);white-space:nowrap}
+.pill.ok{color:var(--good);background:var(--good-bg);border-color:transparent}
+.pill.warn{color:var(--warn);background:var(--warn-bg);border-color:transparent}
+.pill.bad{color:var(--bad);background:var(--bad-bg);border-color:transparent}
+#banner{max-width:640px;margin:0 auto}
+.note{margin:12px 16px 0;padding:10px 12px;border-radius:10px;font-size:14px;background:var(--warn-bg);color:var(--warn)}
+.note.bad{background:var(--bad-bg);color:var(--bad)}
+main{max-width:640px;margin:0 auto;padding:12px 16px 40px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.btn{min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 15px var(--body);cursor:pointer}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.sm{min-height:36px;padding:0 10px;font-size:13px}
+.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+input[type=number],input[type=time],input[type=datetime-local],select,textarea{width:100%;min-height:44px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:400 16px var(--body)}
+input[type=time],input[type=datetime-local]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%}
+textarea{min-height:96px;resize:vertical}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);flex:1;min-width:130px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;border:0;padding:0;margin:0;min-width:0}
+.chips legend{font-size:13px;color:var(--muted);padding:0;margin-bottom:4px}
+.chips label{position:relative;flex:1;min-width:70px}
+.chips input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.chips span{display:flex;align-items:center;justify-content:center;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-weight:600}
+.chips input:checked+span{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.chips input:focus-visible+span{outline:3px solid var(--accent);outline-offset:2px}
+.form{display:flex;flex-direction:column;gap:12px;margin-bottom:14px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{border:1px solid var(--line);border-radius:10px;padding:10px 8px;background:var(--bg);min-width:0}
+.tile .name{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tile .big{font:700 40px/1 var(--display)}
+.tile .meta{font-size:12px;color:var(--muted);margin-top:2px}
+.chip{display:inline-block;font-size:12px;font-weight:600;padding:3px 7px;border-radius:6px;background:var(--line);color:var(--ink);margin-top:6px}
+.chip.butter{background:var(--good-bg);color:var(--good)}
+.chip.some{background:var(--warn-bg);color:var(--warn)}
+.chip.tight{background:var(--bad-bg);color:var(--bad)}
+.call{border-left:6px solid var(--line)}
+.call.go{border-left-color:var(--good)}
+.call.close{border-left-color:var(--warn)}
+.call.over{border-left-color:var(--bad)}
+.call .head{font:700 28px/1.05 var(--display);margin-bottom:6px}
+.call.go .head{color:var(--good)}
+.call.close .head{color:var(--warn)}
+.call.over .head{color:var(--bad)}
+.alert{padding:8px 10px;border-radius:8px;margin-top:8px;font-size:14px}
+.alert.warn{background:var(--warn-bg);color:var(--warn)}
+.alert.bad{background:var(--bad-bg);color:var(--bad)}
+.alert.ok{background:var(--good-bg);color:var(--good)}
+.gauge{position:relative;height:16px;border-radius:8px;overflow:hidden;display:flex;margin:10px 0 4px}
+.gauge i{display:block;height:100%}
+.gauge .m{position:absolute;top:-2px;bottom:-2px;width:4px;background:var(--ink);border-radius:2px;transform:translateX(-2px)}
+.scale{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.bigpct{font:700 56px/1 var(--display)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:600}
+.tw{overflow-x:auto}
+.tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.tl li{display:grid;grid-template-columns:14px 1fr auto;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);align-items:start}
+.tl li:last-child{border-bottom:0}
+.dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--muted);margin-top:4px}
+.dot.done{background:var(--good);border-color:var(--good)}
+.dot.next{border-color:var(--accent);background:var(--accent)}
+.tl .t{font-weight:600;text-align:right}
+.tl .d{font-size:13px;color:var(--muted)}
+.tl input[type=time]{min-height:34px;width:120px;font-size:14px;padding:2px 6px}
+details.card>summary{font:600 13px/1.2 var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);cursor:pointer;min-height:24px}
+details.card[open]>summary{margin-bottom:12px}
+.grid2{display:flex;flex-wrap:wrap;gap:10px}
+.check{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
+.check input{width:22px;height:22px;margin:0;flex:none}
+.loglist{display:flex;flex-direction:column}
+.logrow{display:grid;grid-template-columns:1fr auto;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);align-items:center}
+.logrow .a{font-weight:600}
+@media (prefers-reduced-motion: no-preference){.gauge .m{transition:left .3s}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="title">Brisket Cook</span><span class="sub tab" id="dinnerCount"></span></div>
+  <div id="savePill" class="pill">Loading</div>
+</header>
+<div id="banner"></div>
+<main>
+  <section class="card" id="nowCard"></section>
+
+  <section class="card" id="probeCard">
+    <h2>Probe log</h2>
+    <div class="form">
+      <fieldset class="chips" id="spotChips"><legend>Spot</legend>
+        <label><input type="radio" name="fspot" value="point"><span>Point</span></label>
+        <label><input type="radio" name="fspot" value="flat" checked><span>Flat</span></label>
+        <label><input type="radio" name="fspot" value="middle"><span>Middle</span></label>
+      </fieldset>
+      <div class="row">
+        <label class="f">Temp (°F)<input id="fTemp" type="number" inputmode="decimal" min="40" max="260" step="1" placeholder="e.g. 168"></label>
+        <label class="f">Time<input id="fTime" type="time"></label>
+      </div>
+      <div class="row">
+        <button class="btn sm" type="button" data-action="timeshift" data-min="-15">-15 min</button>
+        <button class="btn sm" type="button" data-action="timeshift" data-min="-30">-30 min</button>
+        <button class="btn sm" type="button" data-action="timeshift" data-min="-60">-1 h</button>
+        <button class="btn sm" type="button" data-action="timenow">Now</button>
+      </div>
+      <fieldset class="chips"><legend>Probe resistance (optional)</legend>
+        <label><input type="radio" name="fres" value="" checked><span>Skip</span></label>
+        <label><input type="radio" name="fres" value="tight"><span>Tight</span></label>
+        <label><input type="radio" name="fres" value="some"><span>Some</span></label>
+        <label><input type="radio" name="fres" value="butter"><span>Butter</span></label>
+      </fieldset>
+      <div class="row">
+        <button class="btn primary" type="button" id="logBtn" data-action="log" style="flex:1">Log reading</button>
+        <button class="btn" type="button" id="cancelEdit" data-action="canceledit" hidden>Cancel edit</button>
+      </div>
+      <div id="formMsg" class="small muted" role="status"></div>
+    </div>
+    <div class="tiles" id="tiles"></div>
+  </section>
+
+  <section class="card call" id="callCard"></section>
+  <section class="card" id="modelCard"></section>
+  <section id="contCard"></section>
+  <section class="card" id="timelineCard"></section>
+  <section class="card" id="logCard"></section>
+
+  <details class="card" id="planCard">
+    <summary>Plan and settings</summary>
+    <div class="grid2">
+      <label class="f">Dinner<input id="sDinner" type="datetime-local"></label>
+      <label class="f">Planned start<input id="sStart" type="datetime-local"></label>
+      <label class="f">Brisket weight (lb)<input id="sLbs" type="number" inputmode="decimal" step="0.5" min="3" max="30"></label>
+      <label class="f">Grill setpoint (°F)<input id="sGrill" type="number" inputmode="numeric" min="165" max="500"></label>
+      <label class="f">Oven hold (°F)<input id="sOven" type="number" inputmode="numeric" min="120" max="250"></label>
+      <label class="f">Oven out, min before dinner<input id="sOut" type="number" inputmode="numeric" min="10" max="180"></label>
+      <label class="f">Target hold (h)<input id="sHold" type="number" inputmode="decimal" step="0.5" min="1" max="12"></label>
+      <label class="f">Pull target (°F)<input id="sPull" type="number" inputmode="numeric" min="180" max="210"></label>
+      <label class="f">Model probe
+        <select id="sModel"><option value="flat">Flat</option><option value="middle">Middle</option><option value="point">Point</option></select>
+      </label>
+      <label class="f">Cooldown time constant (h)<input id="sTau" type="number" inputmode="decimal" step="0.1" min="0.8" max="8"></label>
+      <label class="f">Tenderness banked at pull, plan only (%)<input id="sBank" type="number" inputmode="numeric" min="0" max="120"></label>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn" type="button" data-action="usesuggested">Use suggested start</button>
+      <button class="btn danger" type="button" data-action="reset" id="resetBtn">Reset everything</button>
+    </div>
+    <h2 style="margin-top:18px">Before you start</h2>
+    <div id="checks"></div>
+    <h2 style="margin-top:18px">Backfill readings</h2>
+    <p class="small muted">Overnight gap? Copy the probe history from your Traeger or Smokecraft graph. One reading per line, oldest first, like <span class="tab">11:30 pm 148</span> or <span class="tab">23:30, 148</span>.</p>
+    <label class="f" style="margin-bottom:10px">Spot for these readings
+      <select id="bfSpot"><option value="flat">Flat</option><option value="middle">Middle</option><option value="point">Point</option></select>
+    </label>
+    <textarea id="bfText" aria-label="Backfill readings" placeholder="9:00 pm 52&#10;10:00 pm 101&#10;11:00 pm 128"></textarea>
+    <div class="row" style="margin-top:8px"><button class="btn" type="button" data-action="backfill">Add readings</button><span id="bfMsg" class="small muted" role="status"></span></div>
+  </details>
+
+  <section class="card small muted" id="notes">
+    <p><strong>How the numbers work.</strong> Tenderness uses the Smoke Trails rendering table: each internal temperature adds a percent per hour (1% at 140°F up to 75% at 210°F), and the page sums time at each temperature, including the cooldown and the hold. It is an estimate, and brisket varies.</p>
+    <p>Finish times are ranges, not promises. Through the stall (about 150 to 180°F) the range is wide on purpose. Probe feel overrules every number here.</p>
+    <p>This page cannot wake you. Keep the grill and probe alerts on in the Traeger app or Smokecraft.</p>
+  </section>
+</main>
+
+<script>
+//#MODEL-START
+const MIN = 60000, HR = 3600000;
+const RATE_TABLE = [[140,1],[150,2],[160,3],[170,5],[180,9],[190,18],[195,25],[200,35],[205,55],[210,75]];
+
+function rateAt(T){
+  if (T < 140) return 0;
+  const n = RATE_TABLE.length;
+  if (T >= 210){
+    const a = RATE_TABLE[n-2], b = RATE_TABLE[n-1];
+    return b[1] + (T - b[0]) * (b[1] - a[1]) / (b[0] - a[0]);
+  }
+  for (let i = 1; i < n; i++){
+    const a = RATE_TABLE[i-1], b = RATE_TABLE[i];
+    if (T <= b[0]) return a[1] + (T - a[0]) * (b[1] - a[1]) / (b[0] - a[0]);
+  }
+  return 0;
+}
+
+// series: [{t (ms), T (F)}] sorted by t; temperature is linear between points
+function integrate(series){
+  let sum = 0;
+  for (let i = 1; i < series.length; i++){
+    const a = series[i-1], b = series[i];
+    const dt = b.t - a.t;
+    if (dt <= 0) continue;
+    const steps = Math.max(1, Math.ceil(dt / MIN));
+    const h = dt / steps / HR;
+    for (let s = 0; s < steps; s++){
+      const T = a.T + (b.T - a.T) * ((s + 0.5) / steps);
+      sum += rateAt(T) * h;
+    }
+  }
+  return sum;
+}
+
+function coolingSeries(t0, T0, tEnd, Tamb, tauH){
+  const out = [];
+  const step = 5 * MIN;
+  for (let t = t0; t < tEnd; t += step){
+    out.push({ t, T: Tamb + (T0 - Tamb) * Math.exp(-(t - t0) / HR / tauH) });
+  }
+  out.push({ t: tEnd, T: Tamb + (T0 - Tamb) * Math.exp(-(tEnd - t0) / HR / tauH) });
+  return out;
+}
+
+// o: {pts, bank, pullAt, pullT, endAt, Tov, tau}
+function simulate(o){
+  const pts = o.pts || [];
+  const actual = pts.length ? integrate(pts) : (o.bank || 0);
+  let series = [];
+  let tCur, TCur;
+  if (pts.length){ const l = pts[pts.length-1]; tCur = l.t; TCur = l.T; }
+  else { tCur = o.pullAt; TCur = o.pullT; }
+  if (o.pullAt > tCur){
+    series.push({ t: tCur, T: TCur }, { t: o.pullAt, T: o.pullT });
+    tCur = o.pullAt; TCur = o.pullT;
+  }
+  if (o.endAt > tCur) series = series.concat(coolingSeries(tCur, TCur, o.endAt, o.Tov, o.tau));
+  return { actual, total: actual + integrate(series) };
+}
+
+function fitRate(pts){
+  const n = pts.length;
+  if (n < 2) return null;
+  const t0 = pts[0].t;
+  const xs = pts.map(p => (p.t - t0) / HR), ys = pts.map(p => p.T);
+  const mx = xs.reduce((a,b)=>a+b,0)/n, my = ys.reduce((a,b)=>a+b,0)/n;
+  let num = 0, den = 0;
+  for (let i = 0; i < n; i++){ num += (xs[i]-mx)*(ys[i]-my); den += (xs[i]-mx)*(xs[i]-mx); }
+  if (den === 0) return null;
+  return { slope: num/den, meanT: my, spanH: xs[n-1] - xs[0] };
+}
+
+// Range of times when `pts` (one probe spot) reaches `target`.
+function projectEta(pts, target, grill, now){
+  if (!pts.length) return { state: 'none' };
+  const last = pts[pts.length-1];
+  if (last.T >= target) return { state: 'reached', T: last.T };
+  const win = pts.filter(p => last.t - p.t <= 3 * HR).slice(-6);
+  const f = fitRate(win);
+  if (!f || f.spanH < 0.25) return { state: 'needmore' };
+  const slope = f.slope;
+  if (last.T >= 148 && last.T <= 182 && slope < 6){
+    const gap = target - last.T;
+    return { state: 'stall', slope, early: now + gap / 20 * HR, late: now + (3 + gap / 10) * HR };
+  }
+  if (slope < 1) return { state: 'flat', slope };
+  const tLin = last.t + (target - last.T) / slope * HR;
+  let tNew = tLin;
+  if (target < grill - 1 && last.T < grill - 1 && f.meanT < grill - 1){
+    const k = slope / (grill - f.meanT);
+    if (k > 0){
+      const h = Math.log((grill - last.T) / (grill - target)) / k;
+      if (isFinite(h) && h > 0) tNew = last.t + h * HR;
+    }
+  }
+  const lo = Math.max(Math.min(tLin, tNew), now);
+  let hi = Math.max(tLin, tNew, lo);
+  hi = Math.min(hi, lo + 5 * HR);
+  return { state: 'ok', slope, lo, hi, mid: (lo + hi) / 2 };
+}
+
+function bandOf(p){
+  if (p < 80)  return { key:'under', label:'Underdone and tight' };
+  if (p < 90)  return { key:'near',  label:'Slightly tight, sliceable' };
+  if (p < 95)  return { key:'near2', label:'Nearly ideal' };
+  if (p <= 105) return { key:'ideal', label:'Ideal tenderness' };
+  if (p < 110) return { key:'soft1', label:'Ideal to soft' };
+  if (p <= 120) return { key:'soft',  label:'Very soft, possibly overdone' };
+  return { key:'mush', label:'Mushy risk' };
+}
+//#MODEL-END
+</script>
+
+<script>
+(function(){
+'use strict';
+const STANDALONE = true;
+
+const SPOTS = [['point','Point'],['flat','Flat'],['middle','Middle']];
+const SPOT_NAME = { point:'Point', flat:'Flat', middle:'Middle' };
+const DAY = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const LS_KEY = 'brisket-cook-v1';
+const CHECKS = [
+  ['oven','Oven checked at 150°F with a thermometer'],
+  ['firepot','Firepot and ash cleaned, drip tray lined, hopper full of dry pellets'],
+  ['alerts','Traeger and probe alerts on, wind shelter set'],
+  ['probes','Probes ready for point, flat and middle, plus a leave-in for the hold'],
+  ['boat','Heavy-duty foil for the boat, butcher paper and tallow ready'],
+  ['trim','Trimmed to about 1/4 inch and dry brined']
+];
+
+function defaults(){
+  return {
+    v: 1, updatedAt: 0,
+    settings: {
+      dinner: '2026-11-27T19:00', start: '2026-11-26T20:00',
+      lbs: 13, grill: 225, ovenTemp: 150, ovenOutMin: 45, holdH: 6,
+      pullTarget: 195, modelSpot: 'flat', tau: 2.5, bank: 55
+    },
+    events: { started:null, boated:null, pulled:null, ovenIn:null, ovenOut:null, sliced:null },
+    readings: [],
+    checks: {}
+  };
+}
+function normalize(d){
+  const b = defaults();
+  const o = d && typeof d === 'object' ? d : {};
+  return {
+    v: 1,
+    updatedAt: typeof o.updatedAt === 'number' ? o.updatedAt : 0,
+    settings: Object.assign(b.settings, o.settings || {}),
+    events: Object.assign(b.events, o.events || {}),
+    readings: Array.isArray(o.readings) ? o.readings.filter(r => r && typeof r.t === 'number' && typeof r.temp === 'number') : [],
+    checks: o.checks && typeof o.checks === 'object' ? o.checks : {}
+  };
+}
+
+let state = defaults();
+function loadLocal(){
+  try { const s = localStorage.getItem(LS_KEY); if (s) return normalize(JSON.parse(s)); } catch(e){}
+  return null;
+}
+let lsOk = true, idbOk = true, localSavedAt = 0;
+const IDB_NAME = 'brisket-cook', IDB_STORE = 'kv';
+function idbOpen(){
+  return new Promise((res, rej) => {
+    try {
+      const r = indexedDB.open(IDB_NAME, 1);
+      r.onupgradeneeded = () => r.result.createObjectStore(IDB_STORE);
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    } catch(e){ rej(e); }
+  });
+}
+function idbPut(s){
+  idbOpen().then(d => {
+    const tx = d.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(JSON.stringify(s), 'state');
+    tx.oncomplete = () => { idbOk = true; if (!localSavedAt) localSavedAt = Date.now(); d.close(); renderTop(); };
+    tx.onerror = () => { idbOk = false; d.close(); renderTop(); };
+  }).catch(() => { idbOk = false; renderTop(); });
+}
+function idbGet(){
+  return idbOpen().then(d => new Promise(res => {
+    const g = d.transaction(IDB_STORE).objectStore(IDB_STORE).get('state');
+    g.onsuccess = () => { d.close(); try { res(g.result ? JSON.parse(g.result) : null); } catch(e){ res(null); } };
+    g.onerror = () => { d.close(); res(null); };
+  })).catch(() => null);
+}
+function saveLocal(){
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); lsOk = true; localSavedAt = Date.now(); } catch(e){ lsOk = false; }
+  idbPut(state);
+}
+const local0 = loadLocal();
+if (local0) state = local0;
+
+/* ---------- formatting ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtT = ms => new Date(ms).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
+const fmtDT = ms => DAY[new Date(ms).getDay()] + ' ' + fmtT(ms);
+function fmtDur(ms){ const m = Math.round(Math.abs(ms)/MIN); const h = Math.floor(m/60), mm = m%60; return h ? h+'h '+mm+'m' : mm+'m'; }
+const ago = (ms, now) => (now - ms) < 90000 ? 'just now' : fmtDur(now - ms) + ' ago';
+const hhmm = ms => { const d = new Date(ms); return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); };
+const toLocalInput = ms => { const d = new Date(ms), p = n => String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); };
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const pct = x => Math.round(x) + '%';
+
+function resolveTime(str, now){
+  const m = /^(\d{1,2}):(\d{2})/.exec(str || '');
+  if (!m) return now;
+  const d = new Date(now);
+  d.setHours(+m[1], +m[2], 0, 0);
+  if (d.getTime() > now + 10*MIN) d.setDate(d.getDate() - 1);
+  return d.getTime();
+}
+
+/* ---------- persistence ---------- */
+let db = null, ref = null;
+let cloud = 'connecting';        // connecting | on | off | slow
+let saveStatus = 'idle';         // idle | saving | saved | error
+let savedAt = 0, errCode = '';
+let dirty = false, flushing = false, flushTimer = null, gotRemote = false;
+
+function hasUserData(s){
+  return s.updatedAt > 0 || s.readings.length > 0 || Object.values(s.events).some(Boolean);
+}
+function markChanged(){
+  state.updatedAt = Math.max(Date.now(), state.updatedAt + 1);
+  saveLocal();
+  dirty = true;
+  if (ref) { saveStatus = 'saving'; scheduleFlush(400); }
+  renderTop();
+}
+function scheduleFlush(delay){
+  if (!ref) return;
+  clearTimeout(flushTimer);
+  flushTimer = setTimeout(flush, delay);
+}
+async function flush(){
+  if (!ref || flushing || !dirty) return;
+  flushing = true;
+  const version = state.updatedAt;
+  saveStatus = 'saving'; renderTop();
+  try {
+    await ref.set(JSON.parse(JSON.stringify(state)));
+    savedAt = Date.now(); errCode = '';
+    if (state.updatedAt === version) dirty = false;
+    saveStatus = dirty ? 'saving' : 'saved';
+    flushing = false; renderTop();
+    if (dirty) scheduleFlush(300);
+  } catch(e){
+    flushing = false;
+    errCode = (e && e.code) || 'error';
+    saveStatus = 'error'; renderTop();
+    if (dirty) scheduleFlush(15000);
+  }
+}
+function handleRemote(data){
+  if (data && typeof data.updatedAt === 'number'){
+    if (data.updatedAt > state.updatedAt){
+      state = normalize(data); saveLocal(); dirty = false;
+      saveStatus = 'saved'; savedAt = Date.now();
+      fillSettings(); renderAll();
+    } else if (data.updatedAt < state.updatedAt){
+      dirty = true; scheduleFlush(300);
+    } else if (!flushing && !dirty){
+      saveStatus = 'saved'; if (!savedAt) savedAt = Date.now(); renderTop();
+    }
+  } else if (hasUserData(state)){
+    dirty = true; scheduleFlush(300);
+  } else {
+    saveStatus = 'saved'; if (!savedAt) savedAt = Date.now(); renderTop();
+  }
+}
+async function initCloud(){
+  if (STANDALONE) return;
+  try {
+    if (!window.claude || typeof window.claude.use !== 'function'){ cloud = 'off'; renderTop(); return; }
+    const d = await window.claude.use('db');
+    if (!d){ cloud = 'off'; renderTop(); return; }
+    db = d; ref = db.doc('cook/main');
+    cloud = 'on'; renderTop();
+    const timer = setTimeout(() => { if (!gotRemote){ cloud = 'slow'; renderTop(); } }, 10000);
+    ref.onSnapshot(snap => {
+      if (!(snap.metadata && snap.metadata.fromCache)){ gotRemote = true; clearTimeout(timer); if (cloud === 'slow') cloud = 'on'; }
+      handleRemote(snap.exists ? snap.data() : null);
+      renderTop();
+    }, err => {
+      cloud = 'off'; errCode = (err && err.code) || 'error'; saveStatus = 'error'; renderTop();
+    });
+  } catch(e){ cloud = 'off'; renderTop(); }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && dirty) flush(); });
+
+/* ---------- analysis ---------- */
+function phaseOf(ev){
+  if (ev.sliced) return 'done';
+  if (ev.ovenOut) return 'rest';
+  if (ev.ovenIn) return 'hold';
+  if (ev.pulled) return 'vent';
+  if (ev.boated) return 'boated';
+  if (ev.started) return 'smoke';
+  return 'plan';
+}
+function planWindow(A){
+  const s = A.s;
+  const f = 225 / Math.max(165, s.grill);
+  const start = A.ev.started || new Date(s.start).getTime();
+  const rows = [['Fast',1.0],['Likely',1.2],['Slow',1.4]].map(([name,k]) => {
+    const hrs = s.lbs * k * f;
+    const pull = start + hrs * HR;
+    const holdH = (A.plannedOut - (pull + 15*MIN)) / HR;
+    return { name, hrs, pull, holdH };
+  });
+  const likely = rows[1];
+  const suggested = A.plannedOut - s.holdH * HR - 15*MIN - likely.hrs * HR;
+  return { rows, start, suggested };
+}
+function analyze(){
+  const now = Date.now(), s = state.settings, ev = state.events;
+  const dinner = new Date(s.dinner).getTime();
+  const A = { now, s, ev, dinner, plannedOut: dinner - s.ovenOutMin*MIN, latestPull: dinner - 135*MIN, slice: dinner - 20*MIN, spots: {} };
+  for (const [k] of SPOTS){
+    const rs = state.readings.filter(r => r.spot === k).sort((a,b) => a.t - b.t);
+    const pts = rs.map(r => ({ t: r.t, T: r.temp }));
+    const last = rs[rs.length-1] || null;
+    const lr = rs.slice().reverse().find(r => r.res);
+    const res = lr && (now - lr.t) <= 90*MIN ? lr.res : null;
+    const eta = projectEta(pts, s.pullTarget, s.grill, now);
+    const boatEta = projectEta(pts, 170, s.grill, now);
+    const win = pts.filter(p => last && last.t - p.t <= 3*HR).slice(-6);
+    const fit = fitRate(win);
+    A.spots[k] = { rs, pts, last, res, eta, boatEta, slope: fit ? fit.slope : null, fitSpan: fit ? fit.spanH : 0 };
+  }
+  A.phase = phaseOf(ev);
+  A.plan = planWindow(A);
+  return A;
+}
+
+function modelAnalysis(A){
+  const s = A.s, ev = A.ev, sp = A.spots[s.modelSpot], pts = sp.pts, Tov = s.ovenTemp;
+  let tau = s.tau, tauSrc = 'default';
+  if (ev.pulled){
+    const post = pts.filter(p => p.t >= ev.pulled - 5*MIN);
+    if (post.length >= 2){
+      const l = post[post.length-1];
+      const e = post.find(p => l.t - p.t >= 20*MIN && l.t - p.t <= 4*HR);
+      if (e && e.T > l.T && l.T > Tov + 3){
+        const t = (l.t - e.t) / HR / Math.log((e.T - Tov) / (l.T - Tov));
+        if (isFinite(t) && t > 0){ tau = Math.min(8, Math.max(0.8, t)); tauSrc = 'fitted'; }
+      }
+    }
+  }
+  const out = { tau, tauSrc, spot: s.modelSpot, hasData: pts.length > 0 };
+  const endAt = Math.max(A.plannedOut, A.now + MIN);
+  out.endAt = endAt;
+  let maxGap = 0;
+  for (let i = 1; i < pts.length; i++){
+    if (pts[i-1].T >= 140 && pts[i].T >= 140) maxGap = Math.max(maxGap, pts[i].t - pts[i-1].t);
+  }
+  out.maxGap = maxGap;
+  if (pts.length){
+    const last = pts[pts.length-1];
+    out.actual = integrate(pts);
+    if (!ev.pulled){
+      let Tnow = last.T;
+      const dh = (A.now - last.t) / HR;
+      if (dh > 0 && dh <= 0.5 && sp.slope && sp.slope > 0) Tnow = Math.min(last.T + Math.min(sp.slope, 30) * dh, s.pullTarget + 15);
+      out.now = simulate({ pts, pullAt: A.now, pullT: Tnow, endAt, Tov, tau });
+      const eta = sp.eta;
+      if (eta.state === 'ok' || eta.state === 'stall'){
+        const at = eta.state === 'ok' ? eta.mid : (eta.early + eta.late) / 2;
+        out.atEta = Object.assign({ at }, simulate({ pts, pullAt: at, pullT: s.pullTarget, endAt: Math.max(endAt, at + MIN), Tov, tau }));
+      }
+    } else if (!ev.ovenOut){
+      out.hold = simulate({ pts, pullAt: 0, pullT: 0, endAt, Tov, tau });
+    } else {
+      out.final = out.actual;
+    }
+  } else {
+    const t = A.plannedOut - s.holdH * HR - 15*MIN;
+    out.plan = simulate({ pts: [], bank: s.bank, pullAt: t, pullT: s.pullTarget, endAt: A.plannedOut, Tov, tau });
+  }
+  return out;
+}
+
+function pullCall(A){
+  const ev = A.ev, s = A.s;
+  if (ev.pulled) return null;
+  const fl = A.spots.flat;
+  const out = { level: 'none', head: 'Log the flat to get a pull call', body: 'The call keys off the flat, because it is the part that dries out first.', alerts: [] };
+  if (!fl.last){ return out; }
+  const T = fl.last.temp, res = fl.res;
+  const others = ['point','middle'].filter(k => A.spots[k].res === 'tight' && A.spots[k].last && A.spots[k].last.temp >= 188).map(k => SPOT_NAME[k]);
+  if (T > 205){
+    out.level = 'over'; out.head = 'Pull now'; out.body = 'Flat is at ' + T + '°F, past the usual range. Every minute adds tenderness fast at this temperature.';
+  } else if (res === 'butter' && T >= 180){
+    out.level = 'go'; out.head = 'Pull';
+    out.body = 'Flat probes like butter at ' + T + '°F. The hold will finish the job.';
+    if (others.length) out.alerts.push(['warn', others.join(' and ') + ' still tight. Pull anyway to protect the flat, or give it 20 to 30 min if you have the time.']);
+  } else if (T >= 188 && res === 'some'){
+    out.level = 'close'; out.head = 'Close'; out.body = 'Flat is at ' + T + '°F with some resistance. Probe again in 20 to 30 min.';
+  } else if (T >= 188 && res === 'tight'){
+    out.level = 'wait'; out.head = 'Not yet'; out.body = 'Flat is at ' + T + '°F but still tight. Keep going and re-probe in 30 min.';
+  } else if (T >= 188){
+    out.level = 'close'; out.head = 'Probe the flat by feel'; out.body = 'Flat is at ' + T + '°F. Probe it and log the resistance (tight, some or butter).';
+  } else {
+    out.level = 'wait'; out.head = 'Not yet';
+    const e = fl.eta;
+    let line = 'Flat is at ' + T + '°F.';
+    if (e.state === 'ok') line += ' Reaches ' + s.pullTarget + '°F around ' + fmtT(e.lo) + ' to ' + fmtT(e.hi) + '.';
+    else if (e.state === 'stall') line += ' In the stall, so the finish time is a wide range.';
+    out.body = line;
+  }
+  if (!ev.boated){
+    if (T >= 165 && T <= 178) out.alerts.push(['warn', 'Boat window. Flat is at ' + T + '°F. If the bark is dark, firm and does not smear when pressed, boat it now.']);
+    else if (T > 178 && T < 188) out.alerts.push(['warn', 'Past the boat window. Boat now if the bark is set, or skip it.']);
+  }
+  if (out.level === 'go' || out.level === 'over' || out.level === 'close'){
+    const holdH = (A.plannedOut - (A.now + 15*MIN)) / HR;
+    if (holdH > 9.5) out.alerts.push(['warn', 'Pulling now means about ' + holdH.toFixed(1) + ' h in the oven. That is long. Hold at the lowest stable setting or use a cooler for the first hours.']);
+    else if (holdH < 1.5) out.alerts.push(['bad', 'Pulling now leaves about ' + Math.max(0, holdH).toFixed(1) + ' h of rest before oven-out. That is short.']);
+  }
+  const etas = ['point','flat','middle'].map(k => A.spots[k].eta);
+  if (etas.every(e => e.state === 'ok')){
+    const last = Math.max.apply(null, etas.map(e => e.mid));
+    out.lastSpot = last;
+  }
+  return out;
+}
+
+function contingencies(A){
+  const out = [];
+  if (A.ev.pulled) return out;
+  const fl = A.spots.flat, e = fl.eta;
+  if (e.state !== 'ok' && e.state !== 'stall') return out;
+  const mid = e.state === 'ok' ? e.mid : (e.early + e.late) / 2;
+  const hiT = e.state === 'ok' ? e.hi : e.late;
+  if (mid > A.latestPull){
+    out.push(['bad', 'Running behind. Projected pull ' + fmtT(mid) + ' is past the ' + fmtT(A.latestPull) + ' cutoff. Raise the grill to 275 to 300°F now; the boat handles it. Fallback: finish in the oven at 275°F in the boat.']);
+  } else if (hiT > A.latestPull - HR){
+    out.push(['warn', 'Tight. The slow end of the range (' + fmtT(hiT) + ') is within an hour of the ' + fmtT(A.latestPull) + ' cutoff. Consider raising the grill to 250°F.']);
+  }
+  const holdH = (A.plannedOut - (mid + 15*MIN)) / HR;
+  if (holdH > 9.5){
+    out.push(['warn', 'Running early. Projected pull ' + fmtT(mid) + ' means a ' + holdH.toFixed(1) + ' h hold. Lower the grill toward 180 to 200°F to slow it, or plan the first hours of the hold in a cooler.']);
+  }
+  return out;
+}
+
+/* ---------- rendering ---------- */
+function renderTop(){
+  const pill = $('savePill');
+  let cls = 'pill', txt = '';
+  if (STANDALONE){ const bad = !lsOk && !idbOk; cls += bad ? ' bad' : ' ok'; txt = bad ? 'Not saving' : 'Saved' + (localSavedAt ? ' ' + fmtT(localSavedAt) : ' on this phone'); }
+  else if (cloud === 'off'){ cls += ' warn'; txt = 'Saved on this phone only'; }
+  else if (saveStatus === 'error'){ cls += ' bad'; txt = 'Not saved to cloud'; }
+  else if (saveStatus === 'saving'){ txt = 'Saving'; }
+  else if (saveStatus === 'saved'){ cls += ' ok'; txt = 'Saved ' + fmtT(savedAt || Date.now()); }
+  else if (cloud === 'slow'){ cls += ' warn'; txt = 'Cloud slow'; }
+  else { txt = cloud === 'connecting' ? 'Connecting' : 'Ready'; }
+  pill.className = cls; pill.textContent = txt;
+  let b = '';
+  if (STANDALONE){ b = (!lsOk && !idbOk) ? '<div class="note bad">This browser is blocking storage, so readings are lost if you close the page. Turn off private browsing, or tap Copy log every few readings.</div>' : ''; }
+  else if (cloud === 'off') b = '<div class="note">Cloud save is off, so readings are kept in this browser only. Open this page while signed in to claude.ai to turn it on. Use Copy log below as a backup.</div>';
+  else if (saveStatus === 'error') b = '<div class="note bad">Last save failed (' + esc(errCode) + '). Your readings are still stored on this phone and will retry every 15 seconds.</div>';
+  else if (cloud === 'slow') b = '<div class="note">Cloud storage has not answered yet. Readings are stored on this phone and will sync when it does.</div>';
+  $('banner').innerHTML = b;
+  const dinner = new Date(state.settings.dinner).getTime(), now = Date.now();
+  $('dinnerCount').textContent = isNaN(dinner) ? '' : (dinner > now ? 'Dinner in ' + fmtDur(dinner - now) : 'Dinner time passed');
+}
+
+function etaText(e, target){
+  if (e.state === 'none') return 'No readings yet';
+  if (e.state === 'reached') return 'At or past ' + target + '°F';
+  if (e.state === 'needmore') return 'Need 2 readings 15+ min apart';
+  if (e.state === 'stall') return 'In the stall. ' + target + '°F between ' + fmtT(e.early) + ' and ' + fmtT(e.late);
+  if (e.state === 'flat') return 'Temp not rising';
+  return target + '°F around ' + fmtT(e.lo) + ' to ' + fmtT(e.hi);
+}
+
+function renderNow(A){
+  const ph = A.phase;
+  const names = { plan:'Not started', smoke:'Smoking', boated:'Boated, still smoking', vent:'Venting', hold:'Oven hold', rest:'Counter rest', done:'Done' };
+  const s = A.s;
+  const guide = {
+    plan: 'Run the checklist under Plan and settings, then start the cook.',
+    smoke: 'Log all three spots every 30 to 60 min while you are up. For the overnight stretch, backfill from your Traeger graph in the morning.',
+    boated: 'Boat is on. Probe for resistance as the flat nears 190°F.',
+    vent: 'Vent 10 to 15 min uncovered, then wrap tight with warm tallow, probe in the flat, and into the oven.',
+    hold: 'Oven at ' + s.ovenTemp + '°F. Keep the probe above 145°F and log it every 30 to 60 min. Oven-out is planned for ' + fmtT(A.plannedOut) + '.',
+    rest: 'Rest on the counter 20 to 30 min. Separate point from flat and slice against the grain.',
+    done: 'Cook complete.'
+  }[ph];
+  const btn = (ev, label, primary) => '<button class="btn' + (primary ? ' primary' : '') + '" data-action="ev" data-ev="' + ev + '" style="flex:1">' + label + '</button>';
+  let actions = '';
+  if (ph === 'plan') actions = btn('started', 'Start cook (it is on)', true);
+  else if (ph === 'smoke') actions = btn('boated', 'Boated') + btn('pulled', 'Pulled', true);
+  else if (ph === 'boated') actions = btn('pulled', 'Pulled', true);
+  else if (ph === 'vent') actions = btn('ovenIn', 'Into oven', true);
+  else if (ph === 'hold') actions = btn('ovenOut', 'Out of oven', true);
+  else if (ph === 'rest') actions = btn('sliced', 'Sliced', true);
+  let floor = '';
+  if (ph === 'hold'){
+    const mp = A.spots[s.modelSpot].last;
+    if (mp && A.now - mp.t < 3*HR && mp.temp < 145) floor = '<div class="alert bad">Probe reads ' + mp.temp + '°F, below the 145°F floor. Raise the oven a few degrees now.</div>';
+    else if (A.ev.ovenIn && (!mp || A.now - mp.t > 75*MIN)) floor = '<div class="alert warn">No reading in over an hour. Check the leave-in probe.</div>';
+    const heldH = (A.now - A.ev.ovenIn) / HR;
+    if (heldH > 9) floor += '<div class="alert warn">In the oven ' + heldH.toFixed(1) + ' h. Past about 9 to 10 h texture starts to go soft.</div>';
+  }
+  $('nowCard').innerHTML =
+    '<h2>Now</h2><div class="num" style="font-size:34px;font-weight:700;line-height:1">' + names[ph] + '</div>' +
+    '<p class="muted" style="margin-top:6px">' + guide + '</p>' + floor +
+    (actions ? '<div class="row" style="margin-top:10px">' + actions + '</div>' : '');
+}
+
+function renderTiles(A){
+  const s = A.s;
+  $('tiles').innerHTML = SPOTS.map(([k, name]) => {
+    const sp = A.spots[k];
+    if (!sp.last) return '<div class="tile"><div class="name">' + name + '</div><div class="big muted">--</div><div class="meta">No readings</div></div>';
+    let rate = '';
+    if (sp.slope !== null && sp.fitSpan >= 0.25) rate = (sp.slope >= 0 ? '+' : '') + sp.slope.toFixed(0) + '°F/h';
+    const stall = sp.eta.state === 'stall' ? ' · stall' : '';
+    return '<div class="tile"><div class="name">' + name + '</div><div class="big">' + Math.round(sp.last.temp) + '°</div>' +
+      '<div class="meta">' + ago(sp.last.t, A.now) + '</div><div class="meta">' + rate + stall + '</div>' +
+      (sp.res ? '<span class="chip ' + sp.res + '">' + sp.res + '</span>' : '') +
+      '<div class="meta" style="margin-top:6px">' + esc(etaText(sp.eta, s.pullTarget)) + '</div></div>';
+  }).join('');
+}
+
+function renderCall(A, call){
+  const card = $('callCard');
+  const ph = A.phase;
+  if (!call){
+    card.className = 'card call';
+    card.innerHTML = '<h2>Pull call</h2><p class="muted" style="margin:0">Pulled at ' + fmtDT(A.ev.pulled) + '. The hold and model cards below track the rest.</p>';
+    return;
+  }
+  card.className = 'card call ' + call.level;
+  let h = '<h2>Pull call</h2><div class="head">' + esc(call.head) + '</div><p style="margin:0">' + esc(call.body) + '</p>';
+  if (call.lastSpot) h += '<p class="small muted" style="margin:8px 0 0">All three spots reach ' + A.s.pullTarget + '°F by about ' + fmtT(call.lastSpot) + '.</p>';
+  h += call.alerts.map(a => '<div class="alert ' + a[0] + '">' + esc(a[1]) + '</div>').join('');
+  card.innerHTML = h;
+}
+
+function gauge(p){
+  const max = 130, pos = Math.max(0, Math.min(100, p / max * 100));
+  return '<div class="gauge" role="img" aria-label="Tenderness ' + Math.round(p) + ' percent"><i style="flex:80;background:var(--band1)"></i><i style="flex:15;background:var(--band2)"></i><i style="flex:10;background:var(--band3)"></i><i style="flex:15;background:var(--band4)"></i><i style="flex:10;background:var(--band5)"></i><span class="m" style="left:' + pos + '%"></span></div>' +
+    '<div class="scale"><span>0</span><span>80</span><span>95</span><span>105</span><span>120</span><span>130+</span></div>';
+}
+
+function renderModel(A, M){
+  const s = A.s;
+  let h = '<h2>Tenderness · ' + SPOT_NAME[M.spot] + ' probe</h2>';
+  if (!M.hasData){
+    const p = M.plan;
+    h += '<p class="muted">No readings yet. Plan check: pull at ' + s.pullTarget + '°F with about ' + s.bank + '% banked, then a ' + s.holdH + ' h hold at ' + s.ovenTemp + '°F, lands near:</p>' +
+      '<div class="bigpct">' + pct(p.total) + '</div><div class="muted">' + bandOf(p.total).label + '</div>' + gauge(p.total) +
+      '<p class="small muted">The banked figure is a guess until you log the flat through the cook.</p>';
+  } else {
+    const cur = M.actual;
+    h += '<div class="row" style="align-items:flex-end;gap:16px"><div><div class="bigpct">' + pct(cur) + '</div><div class="muted small">logged so far</div></div></div>' + gauge(M.hold ? M.hold.total : cur);
+    const line = (label, total, extra) => '<tr><td>' + label + '</td><td class="tab"><strong>' + pct(total) + '</strong></td><td>' + bandOf(total).label + (extra || '') + '</td></tr>';
+    let rows = '';
+    if (M.now) rows += line('If pulled now, at oven-out (' + fmtT(M.endAt) + ')', M.now.total);
+    if (M.atEta) rows += line('If pulled at about ' + fmtT(M.atEta.at), M.atEta.total);
+    if (M.hold) rows += line('Projected at oven-out (' + fmtT(M.endAt) + ')', M.hold.total);
+    if (M.final !== undefined) rows += line('Final, at oven-out', M.final);
+    if (rows) h += '<div class="tw"><table><thead><tr><th>Scenario</th><th>Total</th><th>Texture</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    if (A.ev.pulled) h += '<p class="small muted" style="margin-top:8px">Cooldown time constant ' + M.tau.toFixed(1) + ' h (' + (M.tauSrc === 'fitted' ? 'fitted from your readings' : 'default, log 2+ readings in the hold to fit it') + ').</p>';
+    if (M.maxGap > 90*MIN) h += '<div class="alert warn">Longest gap between readings above 140°F is ' + fmtDur(M.maxGap) + '. The page connects them with a straight line, so the total is rough. Backfill from your Traeger graph to tighten it.</div>';
+  }
+  $('modelCard').innerHTML = h;
+}
+
+function renderCont(A){
+  const items = contingencies(A);
+  $('contCard').innerHTML = items.length ? items.map(a => '<div class="alert ' + a[0] + '" style="margin:0 0 8px">' + esc(a[1]) + '</div>').join('') : '';
+}
+
+function renderTimeline(A){
+  const s = A.s, ev = A.ev, P = A.plan;
+  let h = '<h2>Timeline</h2>';
+  if (!ev.pulled){
+    h += '<h3>Planning window</h3><div class="tw"><table><thead><tr><th>Pace</th><th>Pull</th><th>Hold</th></tr></thead><tbody>' +
+      P.rows.map(r => '<tr><td>' + r.name + ' (' + r.hrs.toFixed(1) + ' h)</td><td class="tab">' + fmtDT(r.pull) + '</td><td class="tab">' + r.holdH.toFixed(1) + ' h' + (r.holdH > 9.5 ? ' (long)' : r.holdH < 1.5 ? ' (short)' : '') + '</td></tr>').join('') +
+      '</tbody></table></div>' +
+      '<p class="small muted" style="margin:6px 0 12px">Rule of thumb of 1.0, 1.2 and 1.4 h per lb at 225°F with the boat, scaled by grill setpoint. Suggested start for a ' + s.holdH + ' h hold: <strong>' + fmtDT(P.suggested) + '</strong>. Your Smokecraft estimate may differ; live readings replace this.</p>';
+  }
+  const fl = A.spots.flat;
+  const pullEst = fl.eta.state === 'ok' ? fmtT(fl.eta.lo) + ' to ' + fmtT(fl.eta.hi) : fl.eta.state === 'stall' ? fmtT(fl.eta.early) + ' to ' + fmtT(fl.eta.late) : fmtT(P.rows[0].pull) + ' to ' + fmtT(P.rows[2].pull) + ' (plan)';
+  const boatEst = fl.boatEta.state === 'ok' ? '~' + fmtT(fl.boatEta.mid) : 'when flat hits 165 to 178°F';
+  const rows = [
+    { key:'started', label:'Start', detail:'Fat side up, 3 probes in', plan: fmtDT(new Date(s.start).getTime()) },
+    { key:'boated', label:'Boat', detail:'Flat 165 to 178°F, bark set', plan: boatEst },
+    { key:'pulled', label:'Pull', detail:'Flat probes like butter, about ' + s.pullTarget + '°F', plan: pullEst },
+    { key:null, label:'Latest pull', detail:'Leaves about 2 h of hold plus counter rest', plan: fmtDT(A.latestPull) },
+    { key:'ovenIn', label:'Into oven', detail:'Vent 10 to 15 min, wrap tight with tallow', plan: 'pull + 15 min' },
+    { key:'ovenOut', label:'Out of oven', detail:'Rest on the counter 20 to 30 min', plan: fmtDT(A.plannedOut) },
+    { key:'sliced', label:'Slice', detail:'Separate point and flat, against the grain', plan: fmtDT(A.slice) },
+    { key:null, label:'Dinner', detail:'', plan: fmtDT(A.dinner) }
+  ];
+  let nextMarked = false;
+  h += '<ul class="tl">' + rows.map(r => {
+    const t = r.key ? ev[r.key] : null;
+    let cls = 'dot';
+    if (t) cls += ' done';
+    else if (r.key && !nextMarked){ cls += ' next'; nextMarked = true; }
+    const right = t
+      ? '<div class="t tab">' + fmtDT(t) + '</div><input type="time" aria-label="Edit ' + r.label + ' time" value="' + hhmm(t) + '" data-evtime="' + r.key + '"> <button class="btn sm" data-action="clearev" data-ev="' + r.key + '">Clear</button>'
+      : '<div class="t tab">' + esc(r.plan) + '</div>';
+    return '<li><span class="' + cls + '"></span><div><div style="font-weight:600">' + r.label + '</div><div class="d">' + esc(r.detail) + '</div></div><div style="text-align:right">' + right + '</div></li>';
+  }).join('') + '</ul>';
+  $('timelineCard').innerHTML = h;
+}
+
+let editingId = null, pendingDel = null;
+function renderLog(A){
+  const rs = state.readings.slice().sort((a,b) => b.t - a.t);
+  let h = '<h2>Readings (' + rs.length + ')</h2>';
+  if (!rs.length) h += '<p class="muted" style="margin:0">Nothing logged yet.</p>';
+  else h += '<div class="loglist">' + rs.map(r =>
+    '<div class="logrow"><div><span class="a tab">' + fmtDT(r.t) + '</span> · ' + SPOT_NAME[r.spot] + ' · <strong class="tab">' + r.temp + '°F</strong>' + (r.res ? ' <span class="chip ' + r.res + '" style="margin:0">' + r.res + '</span>' : '') + '</div>' +
+    '<div class="row"><button class="btn sm" data-action="edit" data-id="' + r.id + '">Edit</button><button class="btn sm danger" data-action="del" data-id="' + r.id + '">' + (pendingDel === r.id ? 'Tap to delete' : 'Delete') + '</button></div></div>'
+  ).join('') + '</div>';
+  h += '<div class="row" style="margin-top:12px"><button class="btn" data-action="copy">Copy log</button><span id="copyMsg" class="small muted" role="status"></span></div><textarea id="copyArea" hidden readonly aria-label="Log text"></textarea>';
+  $('logCard').innerHTML = h;
+}
+
+function renderChecks(){
+  $('checks').innerHTML = CHECKS.map(([k, label]) =>
+    '<label class="check"><input type="checkbox" data-check="' + k + '"' + (state.checks[k] ? ' checked' : '') + '><span>' + esc(label) + '</span></label>').join('');
+}
+
+function renderAll(){
+  const A = analyze();
+  const M = modelAnalysis(A);
+  const call = pullCall(A);
+  renderTop(); renderNow(A); renderTiles(A); renderCall(A, call); renderModel(A, M); renderCont(A); renderTimeline(A); renderLog(A);
+  renderChecks();
+}
+
+/* ---------- settings form ---------- */
+const SET_FIELDS = [
+  ['sDinner','dinner','dt'],['sStart','start','dt'],['sLbs','lbs','n'],['sGrill','grill','n'],['sOven','ovenTemp','n'],
+  ['sOut','ovenOutMin','n'],['sHold','holdH','n'],['sPull','pullTarget','n'],['sModel','modelSpot','s'],['sTau','tau','n'],['sBank','bank','n']
+];
+function fillSettings(){
+  for (const [id, key] of SET_FIELDS) $(id).value = state.settings[key];
+}
+function bindSettings(){
+  for (const [id, key, kind] of SET_FIELDS){
+    $(id).addEventListener('change', () => {
+      const v = $(id).value;
+      if (kind === 'n'){ const x = parseFloat(v); if (!isFinite(x)) return; state.settings[key] = x; }
+      else state.settings[key] = v;
+      markChanged(); renderAll();
+    });
+  }
+}
+
+/* ---------- form ---------- */
+let timeTouched = false;
+function setFormTime(ms){ $('fTime').value = hhmm(ms); }
+function msg(t){ $('formMsg').textContent = t; }
+function selectedSpot(){ const r = document.querySelector('input[name=fspot]:checked'); return r ? r.value : 'flat'; }
+function setSpot(v){ const r = document.querySelector('input[name=fspot][value="' + v + '"]'); if (r) r.checked = true; }
+function setRes(v){ const r = document.querySelector('input[name=fres][value="' + (v || '') + '"]'); if (r) r.checked = true; }
+function logReading(){
+  const temp = parseFloat($('fTemp').value);
+  if (!(temp >= 40 && temp <= 260)){ msg('Enter a temperature between 40 and 260°F.'); $('fTemp').focus(); return; }
+  const now = Date.now();
+  const t = resolveTime($('fTime').value || hhmm(now), now);
+  const resEl = document.querySelector('input[name=fres]:checked');
+  const res = resEl && resEl.value ? resEl.value : null;
+  const spot = selectedSpot();
+  if (editingId){
+    const r = state.readings.find(x => x.id === editingId);
+    if (r) Object.assign(r, { spot, temp, t, res });
+    editingId = null; $('logBtn').textContent = 'Log reading'; $('cancelEdit').hidden = true;
+    msg('Updated ' + SPOT_NAME[spot] + ' ' + temp + '°F.');
+  } else {
+    state.readings.push({ id: uid(), t, spot, temp, res });
+    msg('Logged ' + SPOT_NAME[spot] + ' ' + temp + '°F at ' + fmtT(t) + '.');
+    const order = ['point','flat','middle']; setSpot(order[(order.indexOf(spot) + 1) % 3]);
+  }
+  $('fTemp').value = ''; setRes(''); timeTouched = false; setFormTime(Date.now());
+  markChanged(); renderAll();
+}
+function startEdit(id){
+  const r = state.readings.find(x => x.id === id); if (!r) return;
+  editingId = id; setSpot(r.spot); $('fTemp').value = r.temp; setFormTime(r.t); timeTouched = true; setRes(r.res);
+  $('logBtn').textContent = 'Update reading'; $('cancelEdit').hidden = false; msg('Editing a reading from ' + fmtDT(r.t) + '.');
+  $('probeCard').scrollIntoView({ block: 'start' });
+}
+
+function parseBackfill(text, spot){
+  const lines = text.split(/\n/).map(l => l.trim()).filter(Boolean);
+  const out = [], bad = [];
+  const startRef = state.events.started || new Date(state.settings.start).getTime();
+  let prev = startRef - HR;
+  const re = /^\D*(\d{1,2}):(\d{2})\s*(am|pm|a|p)?[^\d]*(\d{2,3}(?:\.\d)?)\D*$/i;
+  for (const l of lines){
+    const m = re.exec(l);
+    if (!m){ bad.push(l); continue; }
+    let h = +m[1]; const mi = +m[2]; const ap = (m[3] || '').toLowerCase();
+    if (ap){ if (h < 1 || h > 12){ bad.push(l); continue; } h = (h % 12) + (ap[0] === 'p' ? 12 : 0); }
+    else if (h > 23){ bad.push(l); continue; }
+    const temp = parseFloat(m[4]);
+    if (!(temp >= 40 && temp <= 260) || mi > 59){ bad.push(l); continue; }
+    const d = new Date(startRef); d.setHours(h, mi, 0, 0);
+    while (d.getTime() < prev) d.setDate(d.getDate() + 1);
+    if (d.getTime() > Date.now() + HR){ bad.push(l); continue; }
+    prev = d.getTime();
+    out.push({ id: uid(), t: prev, spot, temp, res: null });
+  }
+  return { out, bad };
+}
+
+/* ---------- events and actions ---------- */
+function buildLog(){
+  const A = analyze(), s = state.settings, ev = state.events;
+  const L = [];
+  L.push('Brisket cook log');
+  L.push('Dinner ' + fmtDT(A.dinner) + ' | ' + s.lbs + ' lb | grill ' + s.grill + 'F | oven hold ' + s.ovenTemp + 'F | pull target ' + s.pullTarget + 'F');
+  const names = { started:'Start', boated:'Boated', pulled:'Pulled', ovenIn:'Into oven', ovenOut:'Out of oven', sliced:'Sliced' };
+  for (const k of Object.keys(names)) if (ev[k]) L.push(names[k] + ': ' + fmtDT(ev[k]));
+  L.push('');
+  state.readings.slice().sort((a,b) => a.t - b.t).forEach(r => L.push(fmtDT(r.t) + ' | ' + SPOT_NAME[r.spot] + ' | ' + r.temp + 'F' + (r.res ? ' | ' + r.res : '')));
+  const M = modelAnalysis(A);
+  if (M.hasData) L.push('', 'Tenderness (' + SPOT_NAME[M.spot] + ', logged so far): ' + pct(M.actual));
+  return L.join('\n');
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-action]'); if (!b) return;
+  const a = b.dataset.action;
+  if (a === 'log') logReading();
+  else if (a === 'canceledit'){ editingId = null; $('logBtn').textContent = 'Log reading'; $('cancelEdit').hidden = true; $('fTemp').value = ''; setRes(''); timeTouched = false; setFormTime(Date.now()); msg(''); }
+  else if (a === 'timeshift'){ const base = resolveTime($('fTime').value, Date.now()); setFormTime(base + (+b.dataset.min) * MIN); timeTouched = true; }
+  else if (a === 'timenow'){ timeTouched = false; setFormTime(Date.now()); }
+  else if (a === 'ev'){
+    const k = b.dataset.ev;
+    state.events[k] = Date.now();
+    if (k === 'ovenIn' && !state.events.pulled) state.events.pulled = Date.now();
+    markChanged(); renderAll();
+  }
+  else if (a === 'clearev'){ state.events[b.dataset.ev] = null; markChanged(); renderAll(); }
+  else if (a === 'edit') startEdit(b.dataset.id);
+  else if (a === 'del'){
+    const id = b.dataset.id;
+    if (pendingDel === id){ state.readings = state.readings.filter(r => r.id !== id); pendingDel = null; markChanged(); }
+    else { pendingDel = id; setTimeout(() => { if (pendingDel === id){ pendingDel = null; renderLog(analyze()); } }, 4000); }
+    renderAll();
+  }
+  else if (a === 'copy'){
+    const text = buildLog();
+    const done = ok => { const m = $('copyMsg'); if (m) m.textContent = ok ? 'Copied.' : 'Copy blocked here. Select the text below and copy it.'; if (!ok){ const ta = $('copyArea'); ta.hidden = false; ta.value = text; ta.focus(); ta.select(); } };
+    try { navigator.clipboard.writeText(text).then(() => done(true), () => done(false)); } catch(err){ done(false); }
+  }
+  else if (a === 'usesuggested'){
+    const A = analyze(); state.settings.start = toLocalInput(A.plan.suggested); fillSettings(); markChanged(); renderAll();
+  }
+  else if (a === 'reset'){
+    if (b.dataset.armed === '1'){ state = Object.assign(defaults(), { updatedAt: Math.max(Date.now(), state.updatedAt + 1) }); editingId = null; fillSettings(); markChanged(); renderAll(); b.dataset.armed = ''; b.textContent = 'Reset everything'; }
+    else { b.dataset.armed = '1'; b.textContent = 'Tap again to erase all readings'; setTimeout(() => { b.dataset.armed = ''; b.textContent = 'Reset everything'; }, 4000); }
+  }
+  else if (a === 'backfill'){
+    const r = parseBackfill($('bfText').value, $('bfSpot').value);
+    if (r.out.length){ state.readings.push.apply(state.readings, r.out); markChanged(); renderAll(); $('bfText').value = r.bad.join('\n'); }
+    $('bfMsg').textContent = 'Added ' + r.out.length + (r.bad.length ? '. Could not read ' + r.bad.length + ' line' + (r.bad.length > 1 ? 's' : '') + ' (left in the box).' : '.');
+  }
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.matches && t.matches('[data-evtime]')){
+    const k = t.dataset.evtime, cur = state.events[k]; if (!cur) return;
+    const m = /^(\d{1,2}):(\d{2})/.exec(t.value); if (!m) return;
+    const d = new Date(cur); d.setHours(+m[1], +m[2], 0, 0);
+    state.events[k] = d.getTime(); markChanged(); renderAll();
+  } else if (t.matches && t.matches('[data-check]')){
+    state.checks[t.dataset.check] = t.checked; markChanged();
+  }
+});
+$('fTime').addEventListener('input', () => { timeTouched = true; });
+
+/* ---------- init ---------- */
+fillSettings(); bindSettings(); setFormTime(Date.now());
+renderAll();
+initCloud();
+idbGet().then(s => { if (s){ const n = normalize(s); if (n.updatedAt > state.updatedAt){ state = n; saveLocal(); fillSettings(); renderAll(); } } });
+setInterval(() => {
+  if (!timeTouched && !editingId) setFormTime(Date.now());
+  const a = document.activeElement;
+  const typing = a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT');
+  if (!typing) renderAll(); else renderTop();
+}, 30000);
+})();
+</script>
+</body>
+</html>
