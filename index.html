@@ -125,6 +125,29 @@ details.card[open]>summary{margin-bottom:12px}
 .loglist{display:flex;flex-direction:column}
 .logrow{display:grid;grid-template-columns:1fr auto;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);align-items:center}
 .logrow .a{font-weight:600}
+main.cooking #nowCard{order:1}main.cooking #probeCard{order:2}main.cooking #callCard{order:3}main.cooking #modelCard{order:4}main.cooking #contCard{order:5}main.cooking #timelineCard{order:6}main.cooking #planTop{order:7}main.cooking #logCard{order:8}main.cooking #planCard{order:9}main.cooking #notes{order:10}
+.chart{width:100%;height:auto;display:block;touch-action:pan-y;margin-top:12px}
+.chart text{font:10px var(--body);fill:var(--muted)}
+.chart .ttl{font-weight:600;fill:var(--ink)}
+.c-grid{stroke:var(--line);stroke-width:1}
+.c-flat{stroke:var(--accent);stroke-width:2;fill:none;stroke-linejoin:round;stroke-linecap:round}
+.c-proj{stroke:var(--accent);stroke-width:2;fill:none;stroke-dasharray:4 4}
+.c-fan{fill:var(--accent);opacity:.16}
+.c-target{stroke:var(--ink);stroke-width:1;stroke-dasharray:2 3}
+.c-band{fill:var(--good);opacity:.24}
+.c-mark{stroke:var(--muted);stroke-width:1}
+.c-markp{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3}
+.c-end{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.c-pt{fill:var(--surface);stroke:var(--muted);stroke-width:1.5}
+.c-xh{stroke:var(--ink);stroke-width:1}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin-top:6px}
+.legend svg{width:22px;height:10px;vertical-align:middle;margin-right:4px}
+.readout{font-size:13px;min-height:20px;margin-top:6px}
+.kpis{display:flex;gap:8px 22px;flex-wrap:wrap;margin:10px 0 4px}
+.kpis .bigpct{font-size:44px}
+.bd{list-style:none;margin:10px 0;padding:0;font-size:14px}
+.bd li{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--line)}
+.bd li span:last-child{font-weight:600;white-space:nowrap}
 @media (prefers-reduced-motion: no-preference){.gauge .m{transition:left .3s}}
 </style>
 </head>
@@ -136,6 +159,20 @@ details.card[open]>summary{margin-bottom:12px}
 <div id="banner"></div>
 <main>
   <section class="card" id="nowCard"></section>
+
+  <section class="card" id="planTop">
+    <h2>Plan</h2>
+    <div class="grid2">
+      <label class="f">Dinner<input id="sDinner" type="datetime-local"></label>
+      <label class="f">Planned start<input id="sStart" type="datetime-local"></label>
+      <label class="f">Brisket weight (lb)<input id="sLbs" type="number" inputmode="decimal" step="0.5" min="3" max="30"></label>
+      <label class="f">Grill setpoint (°F)<input id="sGrill" type="number" inputmode="numeric" min="165" max="500"></label>
+    </div>
+    <div id="planWindow" style="margin-top:14px"></div>
+    <div class="row"><button class="btn" type="button" data-action="usesuggested">Use suggested start</button></div>
+  </section>
+
+  <section class="card" id="timelineCard"></section>
 
   <section class="card" id="probeCard">
     <h2>Probe log</h2>
@@ -173,16 +210,11 @@ details.card[open]>summary{margin-bottom:12px}
   <section class="card call" id="callCard"></section>
   <section class="card" id="modelCard"></section>
   <section id="contCard"></section>
-  <section class="card" id="timelineCard"></section>
   <section class="card" id="logCard"></section>
 
   <details class="card" id="planCard">
-    <summary>Plan and settings</summary>
+    <summary>Settings, checklist and backfill</summary>
     <div class="grid2">
-      <label class="f">Dinner<input id="sDinner" type="datetime-local"></label>
-      <label class="f">Planned start<input id="sStart" type="datetime-local"></label>
-      <label class="f">Brisket weight (lb)<input id="sLbs" type="number" inputmode="decimal" step="0.5" min="3" max="30"></label>
-      <label class="f">Grill setpoint (°F)<input id="sGrill" type="number" inputmode="numeric" min="165" max="500"></label>
       <label class="f">Oven hold (°F)<input id="sOven" type="number" inputmode="numeric" min="120" max="250"></label>
       <label class="f">Oven out, min before dinner<input id="sOut" type="number" inputmode="numeric" min="10" max="180"></label>
       <label class="f">Target hold (h)<input id="sHold" type="number" inputmode="decimal" step="0.5" min="1" max="12"></label>
@@ -191,10 +223,8 @@ details.card[open]>summary{margin-bottom:12px}
         <select id="sModel"><option value="flat">Flat</option><option value="middle">Middle</option><option value="point">Point</option></select>
       </label>
       <label class="f">Cooldown time constant (h)<input id="sTau" type="number" inputmode="decimal" step="0.1" min="0.8" max="8"></label>
-      <label class="f">Tenderness banked at pull, plan only (%)<input id="sBank" type="number" inputmode="numeric" min="0" max="120"></label>
     </div>
     <div class="row" style="margin-top:12px">
-      <button class="btn" type="button" data-action="usesuggested">Use suggested start</button>
       <button class="btn danger" type="button" data-action="reset" id="resetBtn">Reset everything</button>
     </div>
     <h2 style="margin-top:18px">Before you start</h2>
@@ -209,7 +239,7 @@ details.card[open]>summary{margin-bottom:12px}
   </details>
 
   <section class="card small muted" id="notes">
-    <p><strong>How the numbers work.</strong> Tenderness uses the Smoke Trails rendering table: each internal temperature adds a percent per hour (1% at 140°F up to 75% at 210°F), and the page sums time at each temperature, including the cooldown and the hold. It is an estimate, and brisket varies.</p>
+    <p><strong>How the numbers work.</strong> Tenderness uses the Smoke Trails rendering table: each internal temperature adds a percent per hour (1% at 140°F up to 75% at 210°F), and the page adds up time at each temperature between your readings, including the cooldown and the hold. The projection carries your recent heating rate to the pull, then an estimated cooldown. It is an estimate, and brisket varies.</p>
     <p>Finish times are ranges, not promises. Through the stall (about 150 to 180°F) the range is wide on purpose. Probe feel overrules every number here.</p>
     <p>This page cannot wake you. Keep the grill and probe alerts on in the Traeger app or Smokecraft.</p>
   </section>
@@ -343,7 +373,7 @@ const CHECKS = [
   ['oven','Oven checked at 150°F with a thermometer'],
   ['firepot','Firepot and ash cleaned, drip tray lined, hopper full of dry pellets'],
   ['alerts','Traeger and probe alerts on, wind shelter set'],
-  ['probes','Probes ready for point, flat and middle, plus a leave-in for the hold'],
+  ['probes','Leave-in probe for the flat, instant-read for point and middle'],
   ['boat','Heavy-duty foil for the boat, butcher paper and tallow ready'],
   ['trim','Trimmed to about 1/4 inch and dry brined']
 ];
@@ -354,7 +384,7 @@ function defaults(){
     settings: {
       dinner: '2026-11-27T19:00', start: '2026-11-26T20:00',
       lbs: 13, grill: 225, ovenTemp: 150, ovenOutMin: 45, holdH: 6,
-      pullTarget: 195, modelSpot: 'flat', tau: 2.5, bank: 55
+      pullTarget: 195, modelSpot: 'flat', tau: 2.5
     },
     events: { started:null, boated:null, pulled:null, ovenIn:null, ovenOut:null, sliced:null },
     readings: [],
@@ -557,6 +587,23 @@ function analyze(){
   return A;
 }
 
+function splitCool(series, Tov){
+  const i = series.findIndex(p => p.T <= Tov + 5);
+  if (i < 0) return { cool: integrate(series), hold: 0 };
+  if (i === 0) return { cool: 0, hold: integrate(series) };
+  return { cool: integrate(series.slice(0, i + 1)), hold: integrate(series.slice(i)) };
+}
+// What gets added after the last reading if the brisket is pulled at time at, reading pullT.
+function projPath(last, at, pullT, endAt, Tov, tau){
+  const climbs = at > last.t;
+  const climb = climbs ? [{ t: last.t, T: last.T }, { t: at, T: pullT }] : [];
+  const startAt = climbs ? at : last.t, startT = climbs ? pullT : last.T;
+  const cool = endAt > startAt ? coolingSeries(startAt, startT, endAt, Tov, tau) : [];
+  const sc = splitCool(cool, Tov);
+  const smoke = climbs ? integrate(climb) : 0;
+  return { at: startAt, smoke, cool: sc.cool, hold: sc.hold, add: smoke + sc.cool + sc.hold,
+           series: climbs ? climb.concat(cool.slice(1)) : cool };
+}
 function modelAnalysis(A){
   const s = A.s, ev = A.ev, sp = A.spots[s.modelSpot], pts = sp.pts, Tov = s.ovenTemp;
   let tau = s.tau, tauSrc = 'default';
@@ -571,36 +618,31 @@ function modelAnalysis(A){
       }
     }
   }
-  const out = { tau, tauSrc, spot: s.modelSpot, hasData: pts.length > 0 };
-  const endAt = Math.max(A.plannedOut, A.now + MIN);
+  const out = { tau, tauSrc, spot: s.modelSpot, hasData: pts.length > 0, state: 'none' };
+  const endAt = ev.ovenOut || Math.max(A.plannedOut, A.now + MIN);
   out.endAt = endAt;
   let maxGap = 0;
   for (let i = 1; i < pts.length; i++){
     if (pts[i-1].T >= 140 && pts[i].T >= 140) maxGap = Math.max(maxGap, pts[i].t - pts[i-1].t);
   }
   out.maxGap = maxGap;
-  if (pts.length){
-    const last = pts[pts.length-1];
-    out.actual = integrate(pts);
-    if (!ev.pulled){
-      let Tnow = last.T;
-      const dh = (A.now - last.t) / HR;
-      if (dh > 0 && dh <= 0.5 && sp.slope && sp.slope > 0) Tnow = Math.min(last.T + Math.min(sp.slope, 30) * dh, s.pullTarget + 15);
-      out.now = simulate({ pts, pullAt: A.now, pullT: Tnow, endAt, Tov, tau });
-      const eta = sp.eta;
-      if (eta.state === 'ok' || eta.state === 'stall'){
-        const at = eta.state === 'ok' ? eta.mid : (eta.early + eta.late) / 2;
-        out.atEta = Object.assign({ at }, simulate({ pts, pullAt: at, pullT: s.pullTarget, endAt: Math.max(endAt, at + MIN), Tov, tau }));
-      }
-    } else if (!ev.ovenOut){
-      out.hold = simulate({ pts, pullAt: 0, pullT: 0, endAt, Tov, tau });
-    } else {
-      out.final = out.actual;
-    }
-  } else {
-    const t = A.plannedOut - s.holdH * HR - 15*MIN;
-    out.plan = simulate({ pts: [], bank: s.bank, pullAt: t, pullT: s.pullTarget, endAt: A.plannedOut, Tov, tau });
-  }
+  if (!pts.length) return out;
+  const last = pts[pts.length-1];
+  out.last = last;
+  out.actual = integrate(pts);
+  const start = ev.started || pts[0].t;
+  out.hoursOn = Math.max(0, ((ev.pulled || last.t) - start) / HR);
+  if (ev.ovenOut){ out.state = 'final'; return out; }
+  const target = s.pullTarget;
+  const Pj = (at, T) => projPath(last, at, T, Math.max(endAt, Math.max(at, last.t) + MIN), Tov, tau);
+  if (ev.pulled){ out.state = 'hold'; out.mid = Pj(last.t, last.T); return out; }
+  out.nowP = Pj(Math.max(A.now, last.t + MIN), last.T);
+  const e = sp.eta;
+  if (e.state === 'reached'){ out.state = 'reached'; out.mid = out.nowP; }
+  else if (last.T < 150){ out.state = 'early'; }
+  else if (e.state === 'ok'){ out.state = 'ok'; out.lo = Pj(e.lo, target); out.hi = Pj(e.hi, target); out.mid = Pj(e.mid, target); }
+  else if (e.state === 'stall'){ out.state = 'stall'; out.lo = Pj(e.early, target); out.hi = Pj(e.late, target); out.mid = Pj((e.early + e.late) / 2, target); }
+  else out.state = e.state;
   return out;
 }
 
@@ -638,8 +680,7 @@ function pullCall(A){
   }
   if (out.level === 'go' || out.level === 'over' || out.level === 'close'){
     const holdH = (A.plannedOut - (A.now + 15*MIN)) / HR;
-    if (holdH > 9.5) out.alerts.push(['warn', 'Pulling now means about ' + holdH.toFixed(1) + ' h in the oven. That is long. Hold at the lowest stable setting or use a cooler for the first hours.']);
-    else if (holdH < 1.5) out.alerts.push(['bad', 'Pulling now leaves about ' + Math.max(0, holdH).toFixed(1) + ' h of rest before oven-out. That is short.']);
+    if (holdH < 1.5) out.alerts.push(['bad', 'Pulling now leaves about ' + Math.max(0, holdH).toFixed(1) + ' h of rest before oven-out. That is short.']);
   }
   const etas = ['point','flat','middle'].map(k => A.spots[k].eta);
   if (etas.every(e => e.state === 'ok')){
@@ -649,24 +690,67 @@ function pullCall(A){
   return out;
 }
 
-function contingencies(A){
-  const out = [];
-  if (A.ev.pulled) return out;
-  const fl = A.spots.flat, e = fl.eta;
-  if (e.state !== 'ok' && e.state !== 'stall') return out;
-  const mid = e.state === 'ok' ? e.mid : (e.early + e.late) / 2;
-  const hiT = e.state === 'ok' ? e.hi : e.late;
-  if (mid > A.latestPull){
-    out.push(['bad', 'Running behind. Projected pull ' + fmtT(mid) + ' is past the ' + fmtT(A.latestPull) + ' cutoff. Raise the grill to 275 to 300°F now; the boat handles it. Fallback: finish in the oven at 275°F in the boat.']);
-  } else if (hiT > A.latestPull - HR){
-    out.push(['warn', 'Tight. The slow end of the range (' + fmtT(hiT) + ') is within an hour of the ' + fmtT(A.latestPull) + ' cutoff. Consider raising the grill to 250°F.']);
+// One calm suggestion at a time. Dead bands keep it from reacting to noise:
+// before the pull it only speaks up past 110%, in the hold outside 93 to 107%,
+// and time advice waits for the boat plus an hour before asking for more heat.
+function steering(A, M){
+  const s = A.s, ev = A.ev, Tov = s.ovenTemp;
+  if (ev.ovenOut) return null;
+  if (!M.hasData) return { level: 'info', text: 'Steering starts once the flat is being logged.' };
+  const a = M.actual, last = M.last, cutoff = fmtT(A.latestPull);
+  const on = { level: 'ok', text: 'On track. No change needed.' };
+  if (!ev.pulled){
+    const e = A.spots.flat.eta;
+    if (e.state === 'ok' || e.state === 'stall'){
+      const lo = e.state === 'ok' ? e.lo : e.early, hi = e.state === 'ok' ? e.hi : e.late, mid = (lo + hi) / 2;
+      const settled = ev.boated && A.now - ev.boated >= 60*MIN;
+      if (lo > A.latestPull) return { level: 'bad', text: 'Running behind. Even the fast end of the range (' + fmtT(lo) + ') is past the ' + cutoff + ' cutoff. Raise the grill to 275 to 300°F' + (ev.boated ? '.' : ' and boat as soon as the bark is set.') };
+      if (mid > A.latestPull){
+        if (!ev.boated) return { level: 'info', text: 'The slow end of the range runs late, but the boat is not on yet. Boat and bump the grill as planned, then judge again an hour later.' };
+        if (!settled) return { level: 'info', text: 'The projection runs late, but the boat went on under an hour ago. Give it until ' + fmtT(ev.boated + 60*MIN) + ' before changing anything.' };
+        return { level: 'warn', text: 'Running behind. Projected pull around ' + fmtT(mid) + ' is past the ' + cutoff + ' cutoff. Raise the grill 25°F (300°F at most) and check again in 45 min.' };
+      }
+      const holdH = (A.plannedOut - (mid + 15*MIN)) / HR;
+      if (holdH > 10 && settled) return { level: 'info', text: 'Running early, with about ' + holdH.toFixed(0) + ' h of hold ahead. No need to slow the cook. Plan for the long hold: tight wrap, oven checked at ' + Tov + '°F.' };
+    }
+    const sp = A.spots[M.spot];
+    if (A.spots.flat.res === 'butter' && A.spots.flat.last && A.spots.flat.last.temp >= 180) return { level: 'ok', text: 'Pull now. Tap Pulled and this line will size the vent.' };
+    if (M.state === 'ok' && last.T >= 185 && sp.slope > 0 && a + M.mid.add > 110){
+      let hitT = null, hitAt = null;
+      for (let T = Math.ceil(last.T); T <= s.pullTarget; T++){
+        const at = Math.max(A.now, last.t + (T - last.T) / sp.slope * HR);
+        if (a + projPath(last, at, T, Math.max(M.endAt, at + MIN), Tov, M.tau).add >= 100){ hitT = T; hitAt = at; break; }
+      }
+      const head = 'Waiting for ' + s.pullTarget + '°F projects ' + pct(a + M.mid.add) + '. Start probing now and pull at first butter. ';
+      return { level: 'warn', text: head + (hitT && hitT > Math.ceil(last.T) ? 'The model reaches 100% with a pull near ' + hitT + '°F, around ' + fmtT(hitAt) + '.' : 'The model is already at 100% or more, so plan a longer vent after the pull.') };
+    }
+    return on;
   }
-  const holdH = (A.plannedOut - (mid + 15*MIN)) / HR;
-  if (holdH > 9.5){
-    out.push(['warn', 'Running early. Projected pull ' + fmtT(mid) + ' means a ' + holdH.toFixed(1) + ' h hold. Lower the grill toward 180 to 200°F to slow it, or plan the first hours of the hold in a cooler.']);
+  if (!M.mid) return on;
+  const proj = a + M.mid.add, left = (M.endAt - A.now) / HR;
+  const low = () => {
+    const need = 100 - proj, h170 = need / 3, h180 = need / 7;
+    if (h170 <= Math.min(left - 0.5, 4)) return { level: 'warn', text: 'Projected ' + pct(proj) + ', a little tight. Raise the oven to 170°F for about ' + h170.toFixed(1) + ' h, then back to ' + Tov + '°F. The meat lags the oven, so check again after the next reading.' };
+    if (h180 <= left - 0.5) return { level: 'warn', text: 'Projected ' + pct(proj) + ', tight. Raise the oven to 180°F for about ' + h180.toFixed(1) + ' h, then back to ' + Tov + '°F. The meat lags the oven, so check again after the next reading.' };
+    return { level: 'bad', text: 'Projected ' + pct(proj) + ' and not enough time to close the gap. Hold at 180°F until oven-out and expect it slightly tight.' };
+  };
+  if (!ev.ovenIn){
+    if (proj > 107){
+      let Tv = 170, tot = 0;
+      for (let T = Math.floor(last.T); T >= 170; T--){ tot = a + integrate(coolingSeries(A.now, T, M.endAt, Tov, M.tau)); Tv = T; if (tot <= 100) break; }
+      return { level: 'warn', text: 'Wrapping now projects ' + pct(proj) + '. Vent uncovered to about ' + Tv + '°F before wrapping (45 min at most), which lands near ' + pct(tot) + '.' };
+    }
+    if (proj < 93) return low();
+    return { level: 'ok', text: 'On track at ' + pct(proj) + '. Vent 10 to 15 min, wrap, and into the oven.' };
   }
-  return out;
+  if (proj > 107){
+    if (M.mid.cool > 6 && last.T > Tov + 12) return { level: 'warn', text: 'Projected ' + pct(proj) + '. Open the wrap on the counter for 10 to 15 min to shed heat, then back in at ' + Tov + '°F.' };
+    return { level: 'info', text: 'Projected ' + pct(proj) + ' and already near oven temp, so there is no brake left. Slice a little thicker.' };
+  }
+  if (proj < 93) return low();
+  return on;
 }
+
 
 /* ---------- rendering ---------- */
 function renderTop(){
@@ -704,7 +788,7 @@ function renderNow(A){
   const names = { plan:'Not started', smoke:'Smoking', boated:'Boated, still smoking', vent:'Venting', hold:'Oven hold', rest:'Counter rest', done:'Done' };
   const s = A.s;
   const guide = {
-    plan: 'Run the checklist under Plan and settings, then start the cook.',
+    plan: 'Set dinner and your start time below, run the checklist under Settings, then start the cook.',
     smoke: 'Log all three spots every 30 to 60 min while you are up. For the overnight stretch, backfill from your Traeger graph in the morning.',
     boated: 'Boat is on. Probe for resistance as the flat nears 190°F.',
     vent: 'Vent 10 to 15 min uncovered, then wrap tight with warm tallow, probe in the flat, and into the oven.',
@@ -749,61 +833,172 @@ function renderTiles(A){
   }).join('');
 }
 
-function renderCall(A, call){
+function steerHTML(st){
+  if (!st) return '';
+  const cls = st.level === 'ok' ? 'ok' : st.level === 'info' ? '' : st.level;
+  return '<h3 style="margin:14px 0 0">Steering</h3>' + (cls ? '<div class="alert ' + cls + '">' + esc(st.text) + '</div>' : '<p class="muted" style="margin:6px 0 0">' + esc(st.text) + '</p>');
+}
+function renderCall(A, call, steer){
   const card = $('callCard');
   const ph = A.phase;
   if (!call){
     card.className = 'card call';
-    card.innerHTML = '<h2>Pull call</h2><p class="muted" style="margin:0">Pulled at ' + fmtDT(A.ev.pulled) + '. The hold and model cards below track the rest.</p>';
+    card.innerHTML = '<h2>Pull call and steering</h2><p class="muted" style="margin:0">Pulled at ' + fmtDT(A.ev.pulled) + '. The tenderness card below tracks the rest.</p>' + steerHTML(steer);
     return;
   }
   card.className = 'card call ' + call.level;
-  let h = '<h2>Pull call</h2><div class="head">' + esc(call.head) + '</div><p style="margin:0">' + esc(call.body) + '</p>';
+  let h = '<h2>Pull call and steering</h2><div class="head">' + esc(call.head) + '</div><p style="margin:0">' + esc(call.body) + '</p>';
   if (call.lastSpot) h += '<p class="small muted" style="margin:8px 0 0">All three spots reach ' + A.s.pullTarget + '°F by about ' + fmtT(call.lastSpot) + '.</p>';
   h += call.alerts.map(a => '<div class="alert ' + a[0] + '">' + esc(a[1]) + '</div>').join('');
-  card.innerHTML = h;
+  card.innerHTML = h + steerHTML(steer);
 }
 
-function gauge(p){
-  const max = 130, pos = Math.max(0, Math.min(100, p / max * 100));
-  return '<div class="gauge" role="img" aria-label="Tenderness ' + Math.round(p) + ' percent"><i style="flex:80;background:var(--band1)"></i><i style="flex:15;background:var(--band2)"></i><i style="flex:10;background:var(--band3)"></i><i style="flex:15;background:var(--band4)"></i><i style="flex:10;background:var(--band5)"></i><span class="m" style="left:' + pos + '%"></span></div>' +
-    '<div class="scale"><span>0</span><span>80</span><span>95</span><span>105</span><span>120</span><span>130+</span></div>';
+let chartData = null;
+function chartSVG(A, M){
+  const s = A.s, ev = A.ev, pts = A.spots[M.spot].pts;
+  const W = 340, L = 30, R = 10, top = 18, h1 = 120, gap = 28, h2 = 96, bot = 18, H = top + h1 + gap + h2 + bot;
+  const all = state.readings.map(r => r.t);
+  const planned = new Date(s.start).getTime();
+  let t0 = ev.started || planned;
+  if (all.length) t0 = Math.min(t0, Math.min.apply(null, all));
+  let t1 = Math.max(A.dinner, A.now, all.length ? Math.max.apply(null, all) : 0);
+  if (!(t1 > t0)) t1 = t0 + HR;
+  const cl = (v, a, b) => Math.max(a, Math.min(b, v));
+  const x = t => L + (cl(t, t0, t1) - t0) / (t1 - t0) * (W - L - R);
+  const y1 = T => top + h1 - (cl(T, 40, 220) - 40) / 180 * h1;
+  const p2 = top + h1 + gap;
+  const y2 = c => p2 + h2 - cl(c, 0, 130) / 130 * h2;
+  const f = n => n.toFixed(1);
+  const line = (arr, yf, key) => arr.map(p => f(x(p.t)) + ',' + f(yf(p[key]))).join(' ');
+  let g = '';
+  // grid and y labels
+  [50, 100, 150, 200].forEach(T => { g += '<line class="c-grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + f(y1(T)) + '" y2="' + f(y1(T)) + '"/><text x="' + (L - 4) + '" y="' + f(y1(T) + 3) + '" text-anchor="end">' + T + '</text>'; });
+  [0, 50, 100].forEach(c => { g += '<line class="c-grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + f(y2(c)) + '" y2="' + f(y2(c)) + '"/><text x="' + (L - 4) + '" y="' + f(y2(c) + 3) + '" text-anchor="end">' + c + '</text>'; });
+  // time ticks
+  const span = (t1 - t0) / HR, step = span > 14 ? 3 : span > 6 ? 2 : 1;
+  const d = new Date(t0); d.setMinutes(0, 0, 0); d.setHours(d.getHours() + 1);
+  while (d.getHours() % step !== 0) d.setHours(d.getHours() + 1);
+  for (let t = d.getTime(); t <= t1; t += step * HR){
+    const hh = new Date(t).getHours(), lab = (hh % 12 || 12) + (hh < 12 ? 'a' : 'p');
+    g += '<line class="c-grid" x1="' + f(x(t)) + '" x2="' + f(x(t)) + '" y1="' + top + '" y2="' + (top + h1) + '"/><line class="c-grid" x1="' + f(x(t)) + '" x2="' + f(x(t)) + '" y1="' + p2 + '" y2="' + (p2 + h2) + '"/><text x="' + f(x(t)) + '" y="' + (H - 5) + '" text-anchor="middle">' + lab + '</text>';
+  }
+  // ideal band, target lines
+  g += '<rect class="c-band" x="' + L + '" width="' + (W - L - R) + '" y="' + f(y2(105)) + '" height="' + f(y2(95) - y2(105)) + '"/>';
+  g += '<text x="' + (L + 3) + '" y="' + f(y2(105) - 3) + '">ideal 95 to 105%</text>';
+  g += '<line class="c-target" x1="' + L + '" x2="' + (W - R) + '" y1="' + f(y1(s.pullTarget)) + '" y2="' + f(y1(s.pullTarget)) + '"/><text x="' + (L + 3) + '" y="' + f(y1(s.pullTarget) + 11) + '">' + s.pullTarget + '° pull</text>';
+  g += '<line class="c-target" x1="' + L + '" x2="' + (W - R) + '" y1="' + f(y1(145)) + '" y2="' + f(y1(145)) + '"/><text x="' + f(Math.min(W - R - 2, x(ev.ovenOut || A.plannedOut) - 4)) + '" y="' + f(y1(145) + 11) + '" text-anchor="end">145° hold floor</text>';
+  g += '<text class="ttl" x="' + L + '" y="' + (top - 6) + '">Internal temp, °F</text><text class="ttl" x="' + L + '" y="' + (p2 - 6) + '">Tenderness, %</text>';
+  // event markers
+  const marks = [];
+  if (ev.boated) marks.push([ev.boated, 'boat', 0]);
+  if (ev.pulled) marks.push([ev.pulled, 'pull', 0]);
+  marks.push([ev.ovenOut || A.plannedOut, 'out', ev.ovenOut ? 0 : 1]);
+  if (!ev.ovenOut && A.now > t0 && A.now < t1) marks.push([A.now, 'now', 0]);
+  marks.sort((a, b) => a[0] - b[0]);
+  let lastLab = -99;
+  marks.forEach(m => {
+    const mx = x(m[0]);
+    g += '<line class="' + (m[2] ? 'c-markp' : 'c-mark') + '" x1="' + f(mx) + '" x2="' + f(mx) + '" y1="' + top + '" y2="' + (top + h1) + '"/><line class="' + (m[2] ? 'c-markp' : 'c-mark') + '" x1="' + f(mx) + '" x2="' + f(mx) + '" y1="' + p2 + '" y2="' + (p2 + h2) + '"/>';
+    if (mx - lastLab > 24 && mx > L + 96){ g += '<text x="' + f(mx) + '" y="' + (top - 6) + '" text-anchor="middle">' + m[1] + '</text>'; lastLab = mx; }
+  });
+  // projection (temp and cumulative tenderness)
+  const cumOf = (series, c0) => { let c = c0; const o = [{ t: series[0].t, c }]; for (let i = 1; i < series.length; i++){ c += integrate([series[i-1], series[i]]); o.push({ t: series[i].t, c }); } return o; };
+  const data = [];
+  if (pts.length){
+    const last = pts[pts.length-1];
+    const full = X => [{ t: last.t, T: last.T }].concat(X.series.filter(p => p.t > last.t));
+    if (M.lo && M.hi){
+      const a = full(M.lo), b = full(M.hi);
+      g += '<polygon class="c-fan" points="' + line(a, y1, 'T') + ' ' + line(b.slice().reverse(), y1, 'T') + '"/>';
+      const ca = cumOf(a, M.actual), cb = cumOf(b, M.actual);
+      g += '<polygon class="c-fan" points="' + line(ca, y2, 'c') + ' ' + line(cb.slice().reverse(), y2, 'c') + '"/>';
+    }
+    if (M.mid){
+      const m = full(M.mid), cm = cumOf(m, M.actual);
+      g += '<polyline class="c-proj" points="' + line(m, y1, 'T') + '"/><polyline class="c-proj" points="' + line(cm, y2, 'c') + '"/>';
+      m.forEach((p, i) => { if (i) data.push({ t: p.t, T: p.T, c: cm[i].c, proj: true }); });
+    }
+    // other spots as dots
+    A.spots.point.pts.forEach(p => { if (M.spot !== 'point') g += '<circle class="c-pt" cx="' + f(x(p.t)) + '" cy="' + f(y1(p.T)) + '" r="3"/>'; });
+    A.spots.middle.pts.forEach(p => { if (M.spot !== 'middle') g += '<rect class="c-pt" x="' + f(x(p.t) - 2.7) + '" y="' + f(y1(p.T) - 2.7) + '" width="5.4" height="5.4"/>'; });
+    // logged lines
+    const cum = cumOf(pts, 0);
+    g += '<polyline class="c-flat" points="' + line(pts, y1, 'T') + '"/><polyline class="c-flat" points="' + line(cum, y2, 'c') + '"/>';
+    g += '<circle class="c-end" cx="' + f(x(last.t)) + '" cy="' + f(y1(last.T)) + '" r="4"/><circle class="c-end" cx="' + f(x(last.t)) + '" cy="' + f(y2(M.actual)) + '" r="4"/>';
+    pts.forEach((p, i) => data.push({ t: p.t, T: p.T, c: cum[i].c, proj: false }));
+  }
+  g += '<line id="xh" class="c-xh" x1="0" x2="0" y1="' + top + '" y2="' + (p2 + h2) + '" visibility="hidden"/>';
+  data.sort((a, b) => a.t - b.t);
+  chartData = { t0, t1, W, L, R, pts: data };
+  return '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Internal temperature and tenderness over time. The readings list below has the same data.">' + g + '</svg>';
 }
 
 function renderModel(A, M){
-  const s = A.s;
-  let h = '<h2>Tenderness · ' + SPOT_NAME[M.spot] + ' probe</h2>';
+  const s = A.s, name = SPOT_NAME[M.spot];
+  let h = '<h2>Tenderness · ' + name + ' probe</h2>';
   if (!M.hasData){
-    const p = M.plan;
-    h += '<p class="muted">No readings yet. Plan check: pull at ' + s.pullTarget + '°F with about ' + s.bank + '% banked, then a ' + s.holdH + ' h hold at ' + s.ovenTemp + '°F, lands near:</p>' +
-      '<div class="bigpct">' + pct(p.total) + '</div><div class="muted">' + bandOf(p.total).label + '</div>' + gauge(p.total) +
-      '<p class="small muted">The banked figure is a guess until you log the flat through the cook.</p>';
+    h += '<p class="muted">No readings yet. Log the ' + name.toLowerCase() + ' and the total starts adding up.</p>';
   } else {
-    const cur = M.actual;
-    h += '<div class="row" style="align-items:flex-end;gap:16px"><div><div class="bigpct">' + pct(cur) + '</div><div class="muted small">logged so far</div></div></div>' + gauge(M.hold ? M.hold.total : cur);
-    const line = (label, total, extra) => '<tr><td>' + label + '</td><td class="tab"><strong>' + pct(total) + '</strong></td><td>' + bandOf(total).label + (extra || '') + '</td></tr>';
-    let rows = '';
-    if (M.now) rows += line('If pulled now, at oven-out (' + fmtT(M.endAt) + ')', M.now.total);
-    if (M.atEta) rows += line('If pulled at about ' + fmtT(M.atEta.at), M.atEta.total);
-    if (M.hold) rows += line('Projected at oven-out (' + fmtT(M.endAt) + ')', M.hold.total);
-    if (M.final !== undefined) rows += line('Final, at oven-out', M.final);
-    if (rows) h += '<div class="tw"><table><thead><tr><th>Scenario</th><th>Total</th><th>Texture</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
-    if (A.ev.pulled) h += '<p class="small muted" style="margin-top:8px">Cooldown time constant ' + M.tau.toFixed(1) + ' h (' + (M.tauSrc === 'fitted' ? 'fitted from your readings' : 'default, log 2+ readings in the hold to fit it') + ').</p>';
-    if (M.maxGap > 90*MIN) h += '<div class="alert warn">Longest gap between readings above 140°F is ' + fmtDur(M.maxGap) + '. The page connects them with a straight line, so the total is rough. Backfill from your Traeger graph to tighten it.</div>';
+    const a = M.actual, last = M.last;
+    h += '<p style="margin:0">As of your ' + fmtT(last.t) + ' reading: ' + M.hoursOn.toFixed(1) + ' h ' + (A.ev.pulled ? 'on the smoker before the pull' : 'on the smoker') + ', ' + name.toLowerCase() + ' at ' + Math.round(last.T) + '°F.</p>';
+    let proj = '';
+    if (M.mid){
+      const mid = a + M.mid.add;
+      let big = pct(mid);
+      if (M.lo && M.hi){ const lo = Math.min(a + M.lo.add, a + M.hi.add), hi = Math.max(a + M.lo.add, a + M.hi.add); if (hi - lo >= 4) big = pct(lo) + ' to ' + pct(hi); }
+      let lab = bandOf(mid).label;
+      if (big.indexOf(' to ') > 0){ const l1 = bandOf(Math.min(a + M.lo.add, a + M.hi.add)).label, l2 = bandOf(Math.max(a + M.lo.add, a + M.hi.add)).label; lab = l1 === l2 ? l1 : 'From ' + l1.toLowerCase() + ' to ' + l2.toLowerCase(); }
+      proj = '<div><div class="bigpct">' + big + '</div><div class="muted small">projected at oven-out (' + fmtT(M.endAt) + ')<br>' + lab + '</div></div>';
+    }
+    h += '<div class="kpis"><div><div class="bigpct">' + pct(a) + '</div><div class="muted small">' + (M.state === 'final' ? 'final, at oven-out' : 'so far') + '</div></div>' + proj + '</div>';
+    if (M.mid){
+      const X = M.mid, row = (l, v) => '<li><span>' + l + '</span><span class="tab">' + v + '</span></li>';
+      let b = row('Logged so far', pct(a));
+      if (M.state === 'ok' || M.state === 'stall'){
+        const when = M.state === 'ok' ? 'around ' + fmtT(X.at) : 'between ' + fmtT(M.lo.at) + ' and ' + fmtT(M.hi.at);
+        b += row('Rest of the smoke, to a ' + s.pullTarget + '°F pull ' + when, '+' + pct(X.smoke));
+      }
+      b += row('Cooldown toward ' + s.ovenTemp + '°F', '+' + pct(X.cool));
+      b += row('Hold at ' + s.ovenTemp + '°F until ' + fmtT(M.endAt), '+' + pct(X.hold));
+      h += '<ul class="bd">' + b + '</ul>';
+      if (M.state === 'stall') h += '<p class="small muted">The ' + name.toLowerCase() + ' is in the stall, so the pull time and the projected total are a wide range.</p>';
+      if (M.state === 'reached') h += '<p class="small muted">The ' + name.toLowerCase() + ' is at or past ' + s.pullTarget + '°F, so this assumes you pull now.</p>';
+    } else if (M.state === 'early') h += '<p class="small muted">The projection starts once the ' + name.toLowerCase() + ' passes 150°F. Before that the heating rate says little about the finish.</p>';
+    else if (M.state === 'needmore') h += '<p class="small muted">The projection needs two ' + name.toLowerCase() + ' readings at least 15 min apart.</p>';
+    else if (M.state === 'flat') h += '<p class="small muted">The ' + name.toLowerCase() + ' temp is not rising, so there is no projection. Check the grill.</p>';
+    if (M.nowP && M.state !== 'reached'){ const n = a + M.nowP.add; h += '<p class="small" style="margin:6px 0 0">If you pulled right now: <strong class="tab">' + pct(n) + '</strong> at oven-out, ' + bandOf(n).label.toLowerCase() + '.</p>'; }
+    if (M.state === 'hold') h += '<p class="small muted" style="margin-top:6px">Cooldown time constant ' + M.tau.toFixed(1) + ' h (' + (M.tauSrc === 'fitted' ? 'fitted from your readings' : 'default, log 2+ readings in the hold to fit it') + ').</p>';
+    if (M.maxGap > 90*MIN) h += '<div class="alert warn">Longest gap between readings above 140°F is ' + fmtDur(M.maxGap) + '. The page connects them with a straight line, so the total is rough. Backfill from your probe graph to tighten it.</div>';
   }
+  h += chartSVG(A, M);
+  h += '<div class="legend"><span><svg viewBox="0 0 22 10"><line class="c-flat" x1="1" x2="21" y1="5" y2="5"/></svg>' + name + ', logged</span><span><svg viewBox="0 0 22 10"><line class="c-proj" x1="1" x2="21" y1="5" y2="5"/></svg>Projected</span>' +
+    (M.spot !== 'point' ? '<span><svg viewBox="0 0 22 10"><circle class="c-pt" cx="11" cy="5" r="3"/></svg>Point</span>' : '') +
+    (M.spot !== 'middle' ? '<span><svg viewBox="0 0 22 10"><rect class="c-pt" x="8.3" y="2.3" width="5.4" height="5.4"/></svg>Middle</span>' : '') + '</div>' +
+    '<div class="readout muted" id="chartRead">' + (M.hasData ? 'Tap or drag on the chart to read a point.' : '') + '</div>';
   $('modelCard').innerHTML = h;
 }
-
-function renderCont(A){
-  const items = contingencies(A);
-  $('contCard').innerHTML = items.length ? items.map(a => '<div class="alert ' + a[0] + '" style="margin:0 0 8px">' + esc(a[1]) + '</div>').join('') : '';
+function chartPoint(e){
+  const svg = e.target.closest && e.target.closest('svg.chart');
+  if (!svg || !chartData || !chartData.pts.length) return;
+  const r = svg.getBoundingClientRect(), c = chartData;
+  const vx = (e.clientX - r.left) / r.width * c.W;
+  const t = c.t0 + (vx - c.L) / (c.W - c.L - c.R) * (c.t1 - c.t0);
+  let best = c.pts[0];
+  for (const p of c.pts) if (Math.abs(p.t - t) < Math.abs(best.t - t)) best = p;
+  const bx = c.L + (best.t - c.t0) / (c.t1 - c.t0) * (c.W - c.L - c.R);
+  const xh = svg.querySelector('#xh');
+  if (xh){ xh.setAttribute('x1', bx); xh.setAttribute('x2', bx); xh.setAttribute('visibility', 'visible'); }
+  const out = $('chartRead');
+  if (out){ out.className = 'readout'; out.textContent = fmtDT(best.t) + ' · ' + Math.round(best.T) + '°F · tenderness ' + pct(best.c) + (best.proj ? ' (projected)' : ' (logged)'); }
 }
+
+function renderCont(A){ $('contCard').innerHTML = ''; }
 
 function renderTimeline(A){
   const s = A.s, ev = A.ev, P = A.plan;
-  let h = '<h2>Timeline</h2>';
+  let h = '<h2>Timeline</h2>', pw = '';
   if (!ev.pulled){
-    h += '<h3>Planning window</h3><div class="tw"><table><thead><tr><th>Pace</th><th>Pull</th><th>Hold</th></tr></thead><tbody>' +
+    pw += '<h3>Planning window</h3><div class="tw"><table><thead><tr><th>Pace</th><th>Pull</th><th>Hold</th></tr></thead><tbody>' +
       P.rows.map(r => '<tr><td>' + r.name + ' (' + r.hrs.toFixed(1) + ' h)</td><td class="tab">' + fmtDT(r.pull) + '</td><td class="tab">' + r.holdH.toFixed(1) + ' h' + (r.holdH > 9.5 ? ' (long)' : r.holdH < 1.5 ? ' (short)' : '') + '</td></tr>').join('') +
       '</tbody></table></div>' +
       '<p class="small muted" style="margin:6px 0 12px">Rule of thumb of 1.0, 1.2 and 1.4 h per lb at 225°F with the boat, scaled by grill setpoint. Suggested start for a ' + s.holdH + ' h hold: <strong>' + fmtDT(P.suggested) + '</strong>. Your Smokecraft estimate may differ; live readings replace this.</p>';
@@ -812,7 +1007,7 @@ function renderTimeline(A){
   const pullEst = fl.eta.state === 'ok' ? fmtT(fl.eta.lo) + ' to ' + fmtT(fl.eta.hi) : fl.eta.state === 'stall' ? fmtT(fl.eta.early) + ' to ' + fmtT(fl.eta.late) : fmtT(P.rows[0].pull) + ' to ' + fmtT(P.rows[2].pull) + ' (plan)';
   const boatEst = fl.boatEta.state === 'ok' ? '~' + fmtT(fl.boatEta.mid) : 'when flat hits 165 to 178°F';
   const rows = [
-    { key:'started', label:'Start', detail:'Fat side up, 3 probes in', plan: fmtDT(new Date(s.start).getTime()) },
+    { key:'started', label:'Start', detail:'Fat side up, leave-in probe in the thick of the flat', plan: fmtDT(new Date(s.start).getTime()) },
     { key:'boated', label:'Boat', detail:'Flat 165 to 178°F, bark set', plan: boatEst },
     { key:'pulled', label:'Pull', detail:'Flat probes like butter, about ' + s.pullTarget + '°F', plan: pullEst },
     { key:null, label:'Latest pull', detail:'Leaves about 2 h of hold plus counter rest', plan: fmtDT(A.latestPull) },
@@ -833,6 +1028,7 @@ function renderTimeline(A){
     return '<li><span class="' + cls + '"></span><div><div style="font-weight:600">' + r.label + '</div><div class="d">' + esc(r.detail) + '</div></div><div style="text-align:right">' + right + '</div></li>';
   }).join('') + '</ul>';
   $('timelineCard').innerHTML = h;
+  $('planWindow').innerHTML = pw || '<p class="small muted">Pulled. The planning window no longer applies.</p>';
 }
 
 let editingId = null, pendingDel = null;
@@ -857,14 +1053,15 @@ function renderAll(){
   const A = analyze();
   const M = modelAnalysis(A);
   const call = pullCall(A);
-  renderTop(); renderNow(A); renderTiles(A); renderCall(A, call); renderModel(A, M); renderCont(A); renderTimeline(A); renderLog(A);
+  document.querySelector('main').classList.toggle('cooking', A.phase !== 'plan');
+  renderTop(); renderNow(A); renderTiles(A); renderCall(A, call, steering(A, M)); renderModel(A, M); renderCont(A); renderTimeline(A); renderLog(A);
   renderChecks();
 }
 
 /* ---------- settings form ---------- */
 const SET_FIELDS = [
   ['sDinner','dinner','dt'],['sStart','start','dt'],['sLbs','lbs','n'],['sGrill','grill','n'],['sOven','ovenTemp','n'],
-  ['sOut','ovenOutMin','n'],['sHold','holdH','n'],['sPull','pullTarget','n'],['sModel','modelSpot','s'],['sTau','tau','n'],['sBank','bank','n']
+  ['sOut','ovenOutMin','n'],['sHold','holdH','n'],['sPull','pullTarget','n'],['sModel','modelSpot','s'],['sTau','tau','n']
 ];
 function fillSettings(){
   for (const [id, key] of SET_FIELDS) $(id).value = state.settings[key];
@@ -988,8 +1185,11 @@ document.addEventListener('click', e => {
   }
   else if (a === 'backfill'){
     const r = parseBackfill($('bfText').value, $('bfSpot').value);
-    if (r.out.length){ state.readings.push.apply(state.readings, r.out); markChanged(); renderAll(); $('bfText').value = r.bad.join('\n'); }
-    $('bfMsg').textContent = 'Added ' + r.out.length + (r.bad.length ? '. Could not read ' + r.bad.length + ' line' + (r.bad.length > 1 ? 's' : '') + ' (left in the box).' : '.');
+    const fresh = r.out.filter(n => !state.readings.some(o => o.spot === n.spot && Math.abs(o.t - n.t) < 90000));
+    const dup = r.out.length - fresh.length;
+    if (fresh.length){ state.readings.push.apply(state.readings, fresh); markChanged(); renderAll(); }
+    if (r.out.length) $('bfText').value = r.bad.join('\n');
+    $('bfMsg').textContent = 'Added ' + fresh.length + (dup ? ', skipped ' + dup + ' already logged' : '') + (r.bad.length ? '. Could not read ' + r.bad.length + ' line' + (r.bad.length > 1 ? 's' : '') + ' (left in the box).' : '.');
   }
 });
 document.addEventListener('change', e => {
@@ -1004,6 +1204,8 @@ document.addEventListener('change', e => {
   }
 });
 $('fTime').addEventListener('input', () => { timeTouched = true; });
+$('modelCard').addEventListener('pointerdown', chartPoint);
+$('modelCard').addEventListener('pointermove', chartPoint);
 
 /* ---------- init ---------- */
 fillSettings(); bindSettings(); setFormTime(Date.now());
