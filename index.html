@@ -10,7 +10,7 @@
 <title>Brisket Cook Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
 :root{
   /* layout: one phone-width column, sticky save bar, stacked cards ordered by what you need at the grill */
@@ -394,10 +394,17 @@ function defaults(){
 function normalize(d){
   const b = defaults();
   const o = d && typeof d === 'object' ? d : {};
+  const def = defaults().settings, st = Object.assign(b.settings, o.settings || {});
+  const okDate = v => typeof v === 'string' && isFinite(new Date(v).getTime());
+  if (!okDate(st.dinner)) st.dinner = def.dinner;
+  if (!okDate(st.start)) st.start = def.start;
+  const lim = { lbs: [3, 30], grill: [165, 500], ovenTemp: [120, 250], ovenOutMin: [10, 180], holdH: [1, 12], pullTarget: [180, 210], tau: [0.8, 8] };
+  for (const k in lim){ const v = Number(st[k]); st[k] = isFinite(v) ? Math.min(lim[k][1], Math.max(lim[k][0], v)) : def[k]; }
+  if (['flat', 'middle', 'point'].indexOf(st.modelSpot) < 0) st.modelSpot = 'flat';
   return {
     v: 1,
     updatedAt: typeof o.updatedAt === 'number' ? o.updatedAt : 0,
-    settings: Object.assign(b.settings, o.settings || {}),
+    settings: st,
     events: Object.assign(b.events, o.events || {}),
     readings: Array.isArray(o.readings) ? o.readings.filter(r => r && typeof r.t === 'number' && typeof r.temp === 'number') : [],
     checks: o.checks && typeof o.checks === 'object' ? o.checks : {}
@@ -862,7 +869,8 @@ function chartSVG(A, M){
   let t0 = ev.started || planned;
   if (all.length) t0 = Math.min(t0, Math.min.apply(null, all));
   let t1 = Math.max(A.dinner, A.now, all.length ? Math.max.apply(null, all) : 0);
-  if (!(t1 > t0)) t1 = t0 + HR;
+  if (!isFinite(t0)) t0 = A.now - HR;
+  if (!isFinite(t1) || !(t1 > t0)) t1 = t0 + HR;
   const cl = (v, a, b) => Math.max(a, Math.min(b, v));
   const x = t => L + (cl(t, t0, t1) - t0) / (t1 - t0) * (W - L - R);
   const y1 = T => top + h1 - (cl(T, 40, 220) - 40) / 180 * h1;
@@ -877,8 +885,8 @@ function chartSVG(A, M){
   // time ticks
   const span = (t1 - t0) / HR, step = span > 14 ? 3 : span > 6 ? 2 : 1;
   const d = new Date(t0); d.setMinutes(0, 0, 0); d.setHours(d.getHours() + 1);
-  while (d.getHours() % step !== 0) d.setHours(d.getHours() + 1);
-  for (let t = d.getTime(); t <= t1; t += step * HR){
+  for (let i = 0; i < 4 && d.getHours() % step !== 0; i++) d.setHours(d.getHours() + 1);
+  for (let t = d.getTime(), n = 0; t <= t1 && n < 400; t += step * HR, n++){
     const hh = new Date(t).getHours(), lab = (hh % 12 || 12) + (hh < 12 ? 'a' : 'p');
     g += '<line class="c-grid" x1="' + f(x(t)) + '" x2="' + f(x(t)) + '" y1="' + top + '" y2="' + (top + h1) + '"/><line class="c-grid" x1="' + f(x(t)) + '" x2="' + f(x(t)) + '" y1="' + p2 + '" y2="' + (p2 + h2) + '"/><text x="' + f(x(t)) + '" y="' + (H - 5) + '" text-anchor="middle">' + lab + '</text>';
   }
@@ -1054,8 +1062,11 @@ function renderAll(){
   const M = modelAnalysis(A);
   const call = pullCall(A);
   document.querySelector('main').classList.toggle('cooking', A.phase !== 'plan');
-  renderTop(); renderNow(A); renderTiles(A); renderCall(A, call, steering(A, M)); renderModel(A, M); renderCont(A); renderTimeline(A); renderLog(A);
-  renderChecks();
+  const safe = (id, fn) => { try { fn(); } catch (e) { try { $(id).innerHTML = '<p class="muted" style="margin:0">This section hit an error and was skipped. Your readings are still saved. Error: ' + esc(e && e.message ? e.message : e) + '</p>'; } catch (e2) {} } };
+  safe('banner', renderTop); safe('nowCard', () => renderNow(A)); safe('tiles', () => renderTiles(A));
+  safe('callCard', () => renderCall(A, call, steering(A, M))); safe('modelCard', () => renderModel(A, M));
+  safe('contCard', () => renderCont(A)); safe('timelineCard', () => renderTimeline(A)); safe('logCard', () => renderLog(A));
+  safe('checks', renderChecks);
 }
 
 /* ---------- settings form ---------- */
@@ -1070,8 +1081,10 @@ function bindSettings(){
   for (const [id, key, kind] of SET_FIELDS){
     $(id).addEventListener('change', () => {
       const v = $(id).value;
-      if (kind === 'n'){ const x = parseFloat(v); if (!isFinite(x)) return; state.settings[key] = x; }
+      if (kind === 'n'){ const x = parseFloat(v); if (!isFinite(x)){ $(id).value = state.settings[key]; return; } state.settings[key] = x; }
+      else if (kind === 'dt'){ if (!isFinite(new Date(v).getTime())){ $(id).value = state.settings[key]; return; } state.settings[key] = v; }
       else state.settings[key] = v;
+      state.settings = normalize(state).settings; $(id).value = state.settings[key];
       markChanged(); renderAll();
     });
   }
@@ -1177,7 +1190,7 @@ document.addEventListener('click', e => {
     try { navigator.clipboard.writeText(text).then(() => done(true), () => done(false)); } catch(err){ done(false); }
   }
   else if (a === 'usesuggested'){
-    const A = analyze(); state.settings.start = toLocalInput(A.plan.suggested); fillSettings(); markChanged(); renderAll();
+    const A = analyze(); if (isFinite(A.plan.suggested)){ state.settings.start = toLocalInput(A.plan.suggested); fillSettings(); markChanged(); renderAll(); }
   }
   else if (a === 'reset'){
     if (b.dataset.armed === '1'){ state = Object.assign(defaults(), { updatedAt: Math.max(Date.now(), state.updatedAt + 1) }); editingId = null; fillSettings(); markChanged(); renderAll(); b.dataset.armed = ''; b.textContent = 'Reset everything'; }
